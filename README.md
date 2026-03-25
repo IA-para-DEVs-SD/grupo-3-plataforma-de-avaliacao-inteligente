@@ -51,25 +51,30 @@ O mock abaixo representa a página de detalhes de um produto e serve como guia v
 
 - [Requisitos do Projeto](.kiro/specs/smart-product-reviews/requirements.md)
 
-## Status
+## Diagrama de Arquitetura
 
-🚧 POC em desenvolvimento
+![Diagrama de Arquitetura do InsightReview](docs/architecture-diagram.png)
 
+## Arquitetura do Projeto
 
-Utilizaremos monorepo com a lib turborepo
+Monorepo com Turborepo:
 
-Arquitetura do projeto
-
+```
 meu-projeto/
 ├── .kiro/                  # Especificações do Kiro/IA
 ├── .github/                # Especificações e configurações para Github
-├── [backend/front]/        # Monorepo podendo ser backend e front 
+├── [backend/front]/        # Monorepo podendo ser backend e front
 │   ├── docs/               # Documentações
 │   ├── tests/              # Testes automatizados
 │   ├── src/                # Diretórios com códigos do monorepo
-│   ├──.env.example         # Variáveis de ambiente 
+│   └── .env.example        # Variáveis de ambiente
 ├── scripts/                # Opcional: Scripts gerais do repositório
 ├── Dockerfile              # Opcional: Imagem Docker
 ├── docker-compose.yml      # Opcional: Orquestração para rodar local
-└── README.md               # Documentação inicial do projeto
+├── README.md               # Documentação inicial do projeto
 └── .gitignore              # Ignora arquivos e pastas no versionamento
+```
+
+## Status
+
+🚧 POC em desenvolvimento
