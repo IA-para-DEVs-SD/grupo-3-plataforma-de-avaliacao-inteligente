@@ -1,10 +1,16 @@
-const express = require('express');
-const cors = require('cors');
-const compression = require('compression');
-require('dotenv').config();
+// Configuração principal do servidor Express
+import { pathToFileURL } from 'node:url';
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import compression from 'compression';
+import { errorMiddleware } from './middleware/error-middleware.js';
+import authRoutes from './routes/auth-routes.js';
+import productRoutes from './routes/product-routes.js';
+import reviewRoutes from './routes/review-routes.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Middlewares globais
 app.use(cors());
@@ -12,14 +18,26 @@ app.use(compression());
 app.use(express.json());
 
 // Rota de health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// TODO: registrar rotas (auth, products, reviews)
+// Rotas da API
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/products/:id/reviews', reviewRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+// Middleware centralizado de erros (deve ser o último middleware registrado)
+app.use(errorMiddleware);
 
-module.exports = app;
+// Inicia o servidor apenas quando executado diretamente (não em testes)
+const isMainModule = process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
+  app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+  });
+}
+
+export default app;
