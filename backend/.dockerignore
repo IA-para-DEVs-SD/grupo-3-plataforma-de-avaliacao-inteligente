@@ -1,0 +1,8 @@
+node_modules
+data
+.env
+*.test.js
+__tests__
+.git
+.gitignore
+jest.config.js
