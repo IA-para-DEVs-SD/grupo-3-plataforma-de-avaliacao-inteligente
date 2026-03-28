@@ -15,6 +15,9 @@ Plataforma web inteligente de avaliação de produtos que utiliza IA para organi
 - **Análise_de_Sentimento**: Classificação gerada pelo Motor_de_IA que categoriza uma Avaliação como positiva, neutra ou negativa
 - **Score_Inteligente**: Pontuação calculada pelo Motor_de_IA que pondera fatores como sentimento, recência e padrões detectados, resultando em uma nota mais confiável que a média aritmética simples
 - **Padrão_Recorrente**: Problema ou qualidade identificado pelo Motor_de_IA que aparece com frequência significativa nas Avaliações de um Produto
+- **Badge_de_Sentimento**: Indicador visual colorido exibido ao lado de cada Avaliação que representa a classificação de sentimento (verde para positiva, cinza para neutra, vermelho para negativa)
+- **Cache_de_IA**: Armazenamento temporário em memória dos resultados processados pelo Motor_de_IA para evitar reprocessamento desnecessário
+- **Rate_Limiting**: Mecanismo de controle de taxa de requisições que limita o número de chamadas por período de tempo para proteger o sistema contra abuso
 
 ## Requisitos
 
@@ -24,11 +27,14 @@ Plataforma web inteligente de avaliação de produtos que utiliza IA para organi
 
 #### Critérios de Aceitação
 
-1. WHEN um Usuário submete dados válidos de cadastro (nome, e-mail e senha), THE Plataforma SHALL criar a conta e enviar um e-mail de confirmação
+1. WHEN um Usuário submete dados válidos de cadastro (nome não vazio, e-mail com formato válido e senha com mínimo de 8 caracteres), THE Plataforma SHALL criar a conta e enviar um e-mail de confirmação
 2. WHEN um Usuário submete credenciais válidas no formulário de login, THE Plataforma SHALL autenticar o Usuário e redirecionar para a página principal
-3. IF um Usuário submete credenciais inválidas, THEN THE Plataforma SHALL exibir uma mensagem de erro informando que as credenciais estão incorretas
+3. IF um Usuário submete credenciais inválidas, THEN THE Plataforma SHALL exibir uma mensagem de erro informando que as credenciais estão incorretas, sem revelar qual campo está errado
 4. IF um Usuário tenta cadastrar um e-mail já existente, THEN THE Plataforma SHALL exibir uma mensagem informando que o e-mail já está em uso
 5. WHEN um Usuário autenticado solicita logout, THE Plataforma SHALL encerrar a sessão e redirecionar para a página de login
+6. IF um Usuário submete um e-mail com formato inválido no cadastro, THEN THE Plataforma SHALL exibir uma mensagem de validação inline no campo e-mail
+7. IF um Usuário submete uma senha com menos de 8 caracteres no cadastro, THEN THE Plataforma SHALL exibir uma mensagem de validação inline no campo senha
+8. IF um Usuário não autenticado tenta acessar uma rota protegida, THEN THE Plataforma SHALL redirecionar o Usuário para a página de login
 
 ### Requisito 2: Cadastro e Busca de Produtos
 
@@ -60,7 +66,7 @@ Plataforma web inteligente de avaliação de produtos que utiliza IA para organi
 #### Critérios de Aceitação
 
 1. WHEN uma nova Avaliação é salva, THE Motor_de_IA SHALL classificar a Avaliação como positiva, neutra ou negativa em até 30 segundos
-2. THE Plataforma SHALL exibir a classificação de sentimento (positiva, neutra ou negativa) ao lado de cada Avaliação na página do Produto
+2. THE Plataforma SHALL exibir um Badge_de_Sentimento ao lado de cada Avaliação na página do Produto, utilizando cores distintas: verde para positiva, cinza para neutra e vermelho para negativa
 3. WHEN um Usuário acessa a página de um Produto, THE Plataforma SHALL exibir a distribuição percentual de Avaliações positivas, neutras e negativas
 4. IF o Motor_de_IA não conseguir classificar uma Avaliação, THEN THE Plataforma SHALL exibir a Avaliação sem classificação de sentimento e registrar o erro no log do sistema
 
@@ -108,3 +114,36 @@ Plataforma web inteligente de avaliação de produtos que utiliza IA para organi
 2. WHEN um Usuário seleciona um filtro de sentimento (positiva, neutra ou negativa), THE Plataforma SHALL exibir apenas as Avaliações com a classificação selecionada
 3. WHEN um Usuário seleciona ordenação por nota, THE Plataforma SHALL reordenar as Avaliações pela nota atribuída (crescente ou decrescente)
 4. WHEN um Usuário aplica filtros e ordenação simultaneamente, THE Plataforma SHALL combinar os critérios e exibir os resultados correspondentes
+
+### Requisito 9: Rate Limiting de Requisições
+
+**User Story:** Como operador da Plataforma, eu quero limitar a taxa de requisições por usuário e por IP, para que o sistema fique protegido contra abuso e sobrecarga.
+
+#### Critérios de Aceitação
+
+1. THE Plataforma SHALL limitar a submissão de Avaliações a 10 requisições por minuto por Usuário autenticado
+2. THE Plataforma SHALL limitar o acesso aos endpoints de insights de IA a 30 requisições por minuto por endereço IP
+3. IF um Usuário excede o limite de taxa de requisições, THEN THE Plataforma SHALL retornar um erro HTTP 429 com mensagem informando que o limite foi excedido
+4. THE Plataforma SHALL aplicar Rate_Limiting de forma independente por endpoint, sem que o consumo de um endpoint afete o limite de outro
+
+### Requisito 10: Cache de Resultados de IA
+
+**User Story:** Como operador da Plataforma, eu quero que os resultados processados pelo Motor de IA sejam armazenados em cache, para que o sistema evite reprocessamento desnecessário e responda com menor latência.
+
+#### Critérios de Aceitação
+
+1. THE Plataforma SHALL armazenar em Cache_de_IA os resultados de Análise_de_Sentimento, Resumo_Automático, Padrões_Recorrentes e Score_Inteligente de cada Produto
+2. WHEN uma nova Avaliação é adicionada a um Produto, THE Plataforma SHALL invalidar o Cache_de_IA do Produto correspondente para forçar o reprocessamento
+3. WHEN um Usuário solicita insights de um Produto cujo Cache_de_IA está válido, THE Plataforma SHALL retornar os resultados do cache sem acionar o Motor_de_IA
+4. THE Plataforma SHALL registrar no campo de data de atualização do cache o momento do último processamento bem-sucedido
+
+### Requisito 11: Validação Dupla de Entrada
+
+**User Story:** Como operador da Plataforma, eu quero que todas as entradas de dados sejam validadas tanto no frontend quanto no backend, para que a experiência do Usuário seja fluida e o sistema esteja protegido contra dados malformados.
+
+#### Critérios de Aceitação
+
+1. THE Plataforma SHALL validar todas as entradas de formulários no frontend com mensagens de validação inline antes do envio ao servidor
+2. THE Plataforma SHALL validar todas as entradas recebidas no backend independentemente da validação do frontend, retornando erro HTTP 422 com detalhes dos campos inválidos
+3. IF o backend detecta dados inválidos que passaram pela validação do frontend, THEN THE Plataforma SHALL rejeitar a requisição e registrar o evento no log do sistema
+4. THE Plataforma SHALL sanitizar todas as entradas de texto no backend antes de processar ou persistir os dados
