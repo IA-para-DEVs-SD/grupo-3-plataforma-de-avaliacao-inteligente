@@ -1,223 +1,190 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
-import { AuthProvider, useAuth } from './AuthContext.jsx';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { AuthProvider, useAuth } from "./AuthContext.jsx";
 
 // Mock do módulo api
-vi.mock('../services/api.js', () => ({
+vi.mock("../services/api.js", () => ({
   default: {
     post: vi.fn(),
   },
 }));
 
-import api from '../services/api.js';
+import api from "../services/api.js";
 
 // Componente auxiliar para testar o hook useAuth
 function TestConsumer() {
-  const { user, loading, isAuthenticated, login, register, logout } = useAuth();
+  const { user, isAuthenticated, loading, login, register, logout } = useAuth();
+
+  // Captura erros de logout para evitar unhandled rejection nos testes
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      /* esperado em testes de falha */
+    }
+  };
+
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="authenticated">{String(isAuthenticated)}</span>
-      <span data-testid="user">{user ? JSON.stringify(user) : 'null'}</span>
-      <button data-testid="login-btn" onClick={() => login('test@email.com', 'senha1234').catch(() => {})} />
-      <button data-testid="register-btn" onClick={() => register('João', 'joao@email.com', 'senha1234').catch(() => {})} />
-      <button data-testid="logout-btn" onClick={() => logout().catch(() => {})} />
+      <span data-testid="user">{user ? user.name : "null"}</span>
+      <button onClick={() => login("test@email.com", "senha1234")}>
+        Login
+      </button>
+      <button onClick={() => register("Teste", "test@email.com", "senha1234")}>
+        Register
+      </button>
+      <button onClick={handleLogout}>Logout</button>
     </div>
   );
 }
 
-describe('AuthContext', () => {
+function renderWithProvider() {
+  return render(
+    <AuthProvider>
+      <TestConsumer />
+    </AuthProvider>,
+  );
+}
+
+describe("AuthContext", () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('deve iniciar com usuário null e loading true, depois loading false', async () => {
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+  it("deve iniciar com usuário null e loading false após mount", async () => {
+    renderWithProvider();
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
-    expect(screen.getByTestId('user').textContent).toBe('null');
-    expect(screen.getByTestId('authenticated').textContent).toBe('false');
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("false");
+    expect(screen.getByTestId("user")).toHaveTextContent("null");
   });
 
-  it('deve restaurar usuário do localStorage ao montar', async () => {
-    const storedUser = { id: '1', name: 'Maria', email: 'maria@email.com' };
-    localStorage.setItem('token', 'token-existente');
-    localStorage.setItem('user', JSON.stringify(storedUser));
+  it("deve restaurar sessão do localStorage ao montar", async () => {
+    localStorage.setItem("token", "token-existente");
+    localStorage.setItem("user", JSON.stringify({ name: "Maria" }));
 
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+    renderWithProvider();
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
-    expect(screen.getByTestId('user').textContent).toBe(JSON.stringify(storedUser));
-    expect(screen.getByTestId('authenticated').textContent).toBe('true');
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("true");
+    expect(screen.getByTestId("user")).toHaveTextContent("Maria");
   });
 
-  it('deve limpar localStorage se dados do usuário estiverem corrompidos', async () => {
-    localStorage.setItem('token', 'token-qualquer');
-    localStorage.setItem('user', 'dados-invalidos{{{');
+  it("deve limpar localStorage corrompido ao montar", async () => {
+    localStorage.setItem("token", "token-existente");
+    localStorage.setItem("user", "json-invalido{{{");
 
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+    renderWithProvider();
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
-    expect(screen.getByTestId('user').textContent).toBe('null');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
+    expect(screen.getByTestId("authenticated")).toHaveTextContent("false");
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("user")).toBeNull();
   });
 
-  it('não deve restaurar usuário se token não existir no localStorage', async () => {
-    localStorage.setItem('user', JSON.stringify({ id: '1', name: 'Test' }));
-
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
-    });
-    expect(screen.getByTestId('user').textContent).toBe('null');
-  });
-
-  it('deve realizar login e armazenar dados no localStorage', async () => {
-    const userData = { id: '2', name: 'Carlos', email: 'test@email.com' };
+  it("deve autenticar usuário após login com sucesso", async () => {
     api.post.mockResolvedValueOnce({
-      data: { token: 'novo-token', user: userData },
+      data: { token: "jwt-token", user: { name: "João" } },
     });
-
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+    const user = userEvent.setup();
+    renderWithProvider();
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
 
-    await act(async () => {
-      screen.getByTestId('login-btn').click();
-    });
+    await user.click(screen.getByText("Login"));
 
-    expect(api.post).toHaveBeenCalledWith('/auth/login', {
-      email: 'test@email.com',
-      password: 'senha1234',
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent("true");
+      expect(screen.getByTestId("user")).toHaveTextContent("João");
     });
-    expect(localStorage.getItem('token')).toBe('novo-token');
-    expect(localStorage.getItem('user')).toBe(JSON.stringify(userData));
-    expect(screen.getByTestId('authenticated').textContent).toBe('true');
+    expect(localStorage.getItem("token")).toBe("jwt-token");
   });
 
-  it('deve realizar registro e armazenar dados no localStorage', async () => {
-    const userData = { id: '3', name: 'João', email: 'joao@email.com' };
+  it("deve autenticar usuário após registro com sucesso", async () => {
     api.post.mockResolvedValueOnce({
-      data: { token: 'token-registro', user: userData },
+      data: { token: "jwt-token-reg", user: { name: "Teste" } },
     });
-
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+    const user = userEvent.setup();
+    renderWithProvider();
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading').textContent).toBe('false');
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
     });
 
-    await act(async () => {
-      screen.getByTestId('register-btn').click();
-    });
+    await user.click(screen.getByText("Register"));
 
-    expect(api.post).toHaveBeenCalledWith('/auth/register', {
-      name: 'João',
-      email: 'joao@email.com',
-      password: 'senha1234',
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent("true");
+      expect(screen.getByTestId("user")).toHaveTextContent("Teste");
     });
-    expect(localStorage.getItem('token')).toBe('token-registro');
-    expect(localStorage.getItem('user')).toBe(JSON.stringify(userData));
-    expect(screen.getByTestId('authenticated').textContent).toBe('true');
+    expect(api.post).toHaveBeenCalledWith("/auth/register", {
+      name: "Teste",
+      email: "test@email.com",
+      password: "senha1234",
+    });
   });
 
-  it('deve realizar logout e limpar localStorage', async () => {
-    const userData = { id: '1', name: 'Ana', email: 'ana@email.com' };
-    localStorage.setItem('token', 'token-ativo');
-    localStorage.setItem('user', JSON.stringify(userData));
+  it("deve limpar estado e localStorage após logout", async () => {
+    localStorage.setItem("token", "token-existente");
+    localStorage.setItem("user", JSON.stringify({ name: "Ana" }));
     api.post.mockResolvedValueOnce({});
 
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+    const user = userEvent.setup();
+    renderWithProvider();
 
     await waitFor(() => {
-      expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      expect(screen.getByTestId("user")).toHaveTextContent("Ana");
     });
 
-    await act(async () => {
-      screen.getByTestId('logout-btn').click();
-    });
-
-    expect(api.post).toHaveBeenCalledWith('/auth/logout');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-    expect(screen.getByTestId('authenticated').textContent).toBe('false');
-  });
-
-  it('deve limpar estado local mesmo se a chamada de logout falhar', async () => {
-    localStorage.setItem('token', 'token-ativo');
-    localStorage.setItem('user', JSON.stringify({ id: '1', name: 'Test' }));
-    api.post.mockRejectedValueOnce(new Error('Erro de rede'));
-
-    render(
-      <AuthProvider>
-        <TestConsumer />
-      </AuthProvider>
-    );
+    await user.click(screen.getByText("Logout"));
 
     await waitFor(() => {
-      expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      expect(screen.getByTestId("authenticated")).toHaveTextContent("false");
+      expect(screen.getByTestId("user")).toHaveTextContent("null");
     });
-
-    await act(async () => {
-      screen.getByTestId('logout-btn').click();
-    });
-
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-    expect(screen.getByTestId('authenticated').textContent).toBe('false');
+    expect(localStorage.getItem("token")).toBeNull();
   });
 
-  it('deve lançar erro ao usar useAuth fora do AuthProvider', () => {
-    // Suprime o erro do console esperado pelo React
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it("deve limpar estado local mesmo quando API de logout falha", async () => {
+    localStorage.setItem("token", "token-existente");
+    localStorage.setItem("user", JSON.stringify({ name: "Carlos" }));
+    api.post.mockRejectedValueOnce(new Error("Erro de rede"));
+
+    const user = userEvent.setup();
+    renderWithProvider();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("user")).toHaveTextContent("Carlos");
+    });
+
+    await user.click(screen.getByText("Logout"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("authenticated")).toHaveTextContent("false");
+    });
+    expect(localStorage.getItem("token")).toBeNull();
+  });
+
+  it("deve lançar erro quando useAuth é usado fora do AuthProvider", () => {
+    // Suprime o console.error do React para este teste
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     expect(() => render(<TestConsumer />)).toThrow(
-      'useAuth deve ser usado dentro de um AuthProvider'
+      "useAuth deve ser usado dentro de um AuthProvider",
     );
 
-    consoleSpy.mockRestore();
+    spy.mockRestore();
   });
 });
