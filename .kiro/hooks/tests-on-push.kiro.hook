@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Testes ao fazer push",
+  "description": "Executa os testes unitários do backend (Jest) e frontend (Vitest) automaticamente antes de cada push para garantir que nenhum código quebrado seja enviado ao repositório.",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      ".*push.*"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd backend && npm test && cd ../frontend && npm test"
+  }
+}
