@@ -18,14 +18,13 @@ import { getDb } from '../database/connection.js';
 export async function upsertInsight(productId, data) {
   const db = getDb();
 
-  const existing = db.prepare(
-    'SELECT id FROM product_insights WHERE product_id = ?'
-  ).get(productId);
+  const existing = db
+    .prepare('SELECT id FROM product_insights WHERE product_id = ?')
+    .get(productId);
 
-  const patterns = data.patterns != null ? JSON.stringify(data.patterns) : undefined;
-  const sentimentDistribution = data.sentimentDistribution != null
-    ? JSON.stringify(data.sentimentDistribution)
-    : undefined;
+  const patterns = data.patterns !== null ? JSON.stringify(data.patterns) : undefined;
+  const sentimentDistribution =
+    data.sentimentDistribution !== null ? JSON.stringify(data.sentimentDistribution) : undefined;
 
   if (existing) {
     // Atualiza apenas os campos fornecidos
@@ -61,9 +60,10 @@ export async function upsertInsight(productId, data) {
     updates.push("updated_at = datetime('now')");
 
     if (updates.length > 0) {
-      db.prepare(
-        `UPDATE product_insights SET ${updates.join(', ')} WHERE product_id = ?`
-      ).run(...params, productId);
+      db.prepare(`UPDATE product_insights SET ${updates.join(', ')} WHERE product_id = ?`).run(
+        ...params,
+        productId
+      );
     }
   } else {
     // Insere novo registro
@@ -95,12 +95,14 @@ export async function upsertInsight(productId, data) {
 export async function findByProductId(productId) {
   const db = getDb();
 
-  const row = db.prepare(
-    `SELECT id, product_id AS productId, summary, patterns, smart_score AS smartScore,
+  const row = db
+    .prepare(
+      `SELECT id, product_id AS productId, summary, patterns, smart_score AS smartScore,
             simple_average AS simpleAverage, sentiment_distribution AS sentimentDistribution,
             review_count_at_last_update AS reviewCountAtLastUpdate, updated_at AS updatedAt
      FROM product_insights WHERE product_id = ?`
-  ).get(productId);
+    )
+    .get(productId);
 
   if (!row) return null;
 
@@ -108,8 +110,6 @@ export async function findByProductId(productId) {
   return {
     ...row,
     patterns: row.patterns ? JSON.parse(row.patterns) : null,
-    sentimentDistribution: row.sentimentDistribution
-      ? JSON.parse(row.sentimentDistribution)
-      : null,
+    sentimentDistribution: row.sentimentDistribution ? JSON.parse(row.sentimentDistribution) : null,
   };
 }

@@ -20,6 +20,16 @@ export function useInsights() {
   const lastUpdatedAtRef = useRef(null);
 
   /**
+   * Para o polling de insights.
+   */
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  /**
    * Busca insights de um produto pelo ID.
    * Atualiza automaticamente os estados de loading, erro e insights.
    * @param {string} productId — identificador do produto
@@ -45,7 +55,7 @@ export function useInsights() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [stopPolling]);
 
   /**
    * Inicia polling para aguardar processamento de insights.
@@ -57,17 +67,7 @@ export function useInsights() {
     pollingRef.current = setInterval(() => {
       fetchInsights(productId);
     }, POLL_INTERVAL);
-  }, [fetchInsights]);
-
-  /**
-   * Para o polling de insights.
-   */
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
+  }, [fetchInsights, stopPolling]);
 
   // Limpa o polling ao desmontar o componente
   useEffect(() => {

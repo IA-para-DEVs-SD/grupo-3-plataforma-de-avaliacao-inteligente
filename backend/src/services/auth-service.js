@@ -106,7 +106,7 @@ export async function loginUser({ email, password }) {
   const token = generateToken(user.id);
 
   // Retorna o usuário sem o hash da senha
-  const { passwordHash, ...userWithoutPassword } = user;
+  const { passwordHash: _hash, ...userWithoutPassword } = user;
   return { user: userWithoutPassword, token };
 }
 

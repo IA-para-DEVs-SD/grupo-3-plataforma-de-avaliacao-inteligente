@@ -25,7 +25,7 @@ export default function SmartScore({ smartScore, simpleAverage }) {
         {/* Score inteligente */}
         <div style={styles.scoreBlock}>
           <span style={styles.label}>Score Inteligente</span>
-          {smartScore != null ? (
+          {smartScore !== null ? (
             <>
               <span style={styles.scoreValue} aria-label={`Score inteligente: ${smartScore.toFixed(1)} de 10`}>
                 {smartScore.toFixed(1)}
@@ -45,7 +45,7 @@ export default function SmartScore({ smartScore, simpleAverage }) {
         {/* Média simples */}
         <div style={styles.scoreBlock}>
           <span style={styles.label}>Média Simples</span>
-          {simpleAverage != null ? (
+          {simpleAverage !== null ? (
             <>
               <span style={styles.averageValue} aria-label={`Média simples: ${simpleAverage.toFixed(1)} de 5`}>
                 {simpleAverage.toFixed(1)}

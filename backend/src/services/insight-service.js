@@ -25,7 +25,7 @@ export async function recalculateSentimentDistribution(productId) {
   const reviews = await findAllByProductId(productId);
 
   // Filtra apenas avaliações com sentimento classificado
-  const classified = reviews.filter((r) => r.sentiment != null);
+  const classified = reviews.filter((r) => r.sentiment !== null);
 
   if (classified.length === 0) {
     return null;
@@ -95,7 +95,7 @@ export async function regenerateSummary(productId) {
   }
 
   // Filtra avaliações com sentimento classificado para o resumo
-  const classified = reviews.filter((r) => r.sentiment != null);
+  const classified = reviews.filter((r) => r.sentiment !== null);
   const summary = generateSummary(classified);
 
   const insight = await upsertInsight(productId, {
@@ -120,7 +120,7 @@ export async function reanalyzePatterns(productId) {
   }
 
   // Filtra avaliações com sentimento classificado para detecção de padrões
-  const classified = reviews.filter((r) => r.sentiment != null);
+  const classified = reviews.filter((r) => r.sentiment !== null);
   const patterns = detectPatterns(classified);
 
   const insight = await upsertInsight(productId, {

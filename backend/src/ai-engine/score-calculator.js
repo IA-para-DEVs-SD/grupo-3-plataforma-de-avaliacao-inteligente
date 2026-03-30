@@ -80,7 +80,7 @@ function calculateRecencyScore(reviews) {
  * @param {{ strengths: string[], weaknesses: string[] } | null} patterns — padrões detectados (reservado para uso futuro)
  * @returns {number} score inteligente [0.0, 10.0]
  */
-export function calculateSmartScore(reviews, sentimentDistribution, patterns) {
+export function calculateSmartScore(reviews, sentimentDistribution, _patterns) {
   if (!Array.isArray(reviews) || reviews.length === 0) {
     return 0.0;
   }
