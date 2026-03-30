@@ -1,0 +1,21 @@
+{
+  "name": "insightreview",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InsightReview — Plataforma Inteligente de Avaliação de Produtos",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1"
+  }
+}
