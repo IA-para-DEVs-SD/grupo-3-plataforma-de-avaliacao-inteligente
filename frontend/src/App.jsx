@@ -1,14 +1,30 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header.jsx';
-import ProductSearch from './components/product/ProductSearch.jsx';
-import ProductDetail from './components/product/ProductDetail.jsx';
-import LoginForm from './components/auth/LoginForm.jsx';
-import RegisterForm from './components/auth/RegisterForm.jsx';
 import './global.css';
+
+// Lazy loading de componentes pesados — carregados sob demanda por rota
+const ProductSearch = lazy(() => import('./components/product/ProductSearch.jsx'));
+const ProductDetail = lazy(() => import('./components/product/ProductDetail.jsx'));
+const LoginForm = lazy(() => import('./components/auth/LoginForm.jsx'));
+const RegisterForm = lazy(() => import('./components/auth/RegisterForm.jsx'));
+
+/**
+ * Fallback de carregamento exibido enquanto componentes lazy são carregados.
+ * @returns {JSX.Element} indicador de carregamento acessível
+ */
+function LoadingFallback() {
+  return (
+    <div style={styles.loading} role="status" aria-label="Carregando página">
+      <p>Carregando...</p>
+    </div>
+  );
+}
 
 /**
  * Página inicial — exibe busca de produtos.
+ * @returns {JSX.Element}
  */
 function HomePage() {
   return (
@@ -20,6 +36,7 @@ function HomePage() {
 
 /**
  * Página de login.
+ * @returns {JSX.Element}
  */
 function LoginPage() {
   return (
@@ -31,6 +48,7 @@ function LoginPage() {
 
 /**
  * Página de cadastro.
+ * @returns {JSX.Element}
  */
 function RegisterPage() {
   return (
@@ -42,6 +60,7 @@ function RegisterPage() {
 
 /**
  * Página de detalhes do produto.
+ * @returns {JSX.Element}
  */
 function ProductDetailPage() {
   return (
@@ -53,19 +72,22 @@ function ProductDetailPage() {
 
 /**
  * Componente raiz da aplicação.
- * Define a estrutura de rotas e envolve tudo com o AuthProvider.
+ * Define a estrutura de rotas com lazy loading e envolve tudo com o AuthProvider.
+ * @returns {JSX.Element}
  */
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Header />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/products/:id" element={<ProductDetailPage />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );
@@ -84,5 +106,11 @@ const styles = {
     maxWidth: '420px',
     margin: '2rem auto',
     padding: '1rem',
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '3rem',
+    color: '#555',
+    fontStyle: 'italic',
   },
 };

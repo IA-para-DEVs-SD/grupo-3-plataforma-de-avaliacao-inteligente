@@ -3,6 +3,13 @@ import ReviewCard from './ReviewCard.jsx';
 /**
  * Lista paginada de avaliações com controles de navegação.
  * Exibe estado de loading, mensagem de lista vazia e paginação.
+ * @param {object} props
+ * @param {Array<object>} props.reviews — lista de avaliações a exibir
+ * @param {number} props.page — número da página atual (1-indexed)
+ * @param {number} props.totalPages — total de páginas disponíveis
+ * @param {boolean} props.loading — indica se as avaliações estão sendo carregadas
+ * @param {(page: number) => void} props.onPageChange — callback ao mudar de página
+ * @returns {JSX.Element}
  */
 export default function ReviewList({ reviews, page, totalPages, loading, onPageChange }) {
   // Estado de carregamento
