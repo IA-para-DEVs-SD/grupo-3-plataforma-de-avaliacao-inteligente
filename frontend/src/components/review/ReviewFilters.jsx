@@ -1,6 +1,12 @@
 /**
  * Filtros de avaliações — seletores de sentimento e ordenação por nota.
  * Chama callbacks onFilterChange e onSortChange ao alterar valores.
+ * @param {object} props
+ * @param {string | null} props.sentiment — filtro de sentimento ativo ('positive', 'neutral', 'negative' ou null)
+ * @param {string | null} props.sort — ordenação ativa ('rating_asc', 'rating_desc' ou null para recentes)
+ * @param {(value: string) => void} props.onFilterChange — callback ao alterar filtro de sentimento
+ * @param {(value: string) => void} props.onSortChange — callback ao alterar ordenação
+ * @returns {JSX.Element}
  */
 export default function ReviewFilters({ sentiment, sort, onFilterChange, onSortChange }) {
   const handleSentimentChange = (e) => {

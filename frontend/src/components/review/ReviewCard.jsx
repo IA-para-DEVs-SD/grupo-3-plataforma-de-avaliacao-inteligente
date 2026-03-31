@@ -2,6 +2,9 @@
  * Card de avaliação individual.
  * Exibe texto, nota (estrelas), autor, data e badge de sentimento.
  * Badge: positivo=verde, neutro=cinza, negativo=vermelho, null=sem badge.
+ * @param {object} props
+ * @param {{ text: string, rating: number, userName: string, createdAt: string, sentiment: 'positive' | 'neutral' | 'negative' | null }} props.review — dados da avaliação
+ * @returns {JSX.Element}
  */
 export default function ReviewCard({ review }) {
   const { text, rating, userName, createdAt, sentiment } = review;

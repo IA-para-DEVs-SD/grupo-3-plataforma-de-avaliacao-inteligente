@@ -3,7 +3,10 @@
  * Exibe o score inteligente (0–10, 1 casa decimal) e a média simples lado a lado.
  * Representação visual com estrelas (score/2 = estrelas preenchidas de 5).
  * Se smartScore é null, exibe mensagem de threshold.
- * Props: { smartScore: number | null, simpleAverage: number | null }
+ * @param {object} props
+ * @param {number | null} props.smartScore — score inteligente ponderado (0–10) ou null se abaixo do threshold
+ * @param {number | null} props.simpleAverage — média aritmética simples (1–5) ou null se sem avaliações
+ * @returns {JSX.Element}
  */
 export default function SmartScore({ smartScore, simpleAverage }) {
   /**
