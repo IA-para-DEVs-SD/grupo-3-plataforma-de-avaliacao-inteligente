@@ -110,7 +110,10 @@ function insertTestProduct(db, userId) {
 /**
  * Insere uma avaliação diretamente no banco com sentimento e timestamp controlados.
  */
-function insertReviewDirect(db, { productId, userId, text, rating, sentiment = null, createdAt = null }) {
+function insertReviewDirect(
+  db,
+  { productId, userId, text, rating, sentiment = null, createdAt = null }
+) {
   const id = uuidv4();
   const ts = createdAt || new Date().toISOString().replace('T', ' ').slice(0, 19);
   db.prepare(
@@ -132,13 +135,10 @@ jest.unstable_mockModule('../database/connection.js', () => ({
 }));
 
 // --- Importa módulos que dependem do banco após o mock ---
-const {
-  recalculateSentimentDistribution,
-  regenerateSummary,
-  reanalyzePatterns,
-  recalculateScore,
-} = await import('../services/insight-service.js');
-const { findByProductId: findInsightByProductId } = await import('../models/product-insight-model.js');
+const { recalculateSentimentDistribution, regenerateSummary, reanalyzePatterns, recalculateScore } =
+  await import('../services/insight-service.js');
+const { findByProductId: findInsightByProductId } =
+  await import('../models/product-insight-model.js');
 
 // --- Geradores fast-check ---
 
@@ -168,18 +168,22 @@ const classifiedReviewArb = fc.record({
 // Gerador de avaliação para score (com rating e createdAt)
 const reviewForScoreArb = fc.record({
   rating: validRatingArb,
-  createdAt: fc.date({ min: new Date('2023-01-01'), max: new Date('2025-01-01') })
-    .map(d => d.toISOString()),
+  createdAt: fc
+    .date({ min: new Date('2023-01-01'), max: new Date('2025-01-01') })
+    .map((d) => d.toISOString()),
 });
 
 // --- Cleanup após cada teste ---
 afterEach(() => {
   if (currentTestDb) {
-    try { currentTestDb.close(); } catch { /* já fechado */ }
+    try {
+      currentTestDb.close();
+    } catch {
+      /* já fechado */
+    }
     currentTestDb = null;
   }
 });
-
 
 // =============================================================================
 // P13 — Sentimento classificado dentro do SLA (função pura, sem DB)
@@ -324,64 +328,60 @@ describe('P15 — resumo gerado com >= 5 avaliações (invariante de threshold)'
 describe('P16 — insights atualizados após nova avaliação (invariante)', () => {
   it('para qualquer produto com insights existentes, adicionar nova avaliação e recalcular deve atualizar updatedAt', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        classifiedReviewArb,
-        async (newReviewData) => {
-          currentTestDb = createFreshTestDb();
-          const userId = insertTestUser(currentTestDb);
-          const productId = insertTestProduct(currentTestDb, userId);
+      fc.asyncProperty(classifiedReviewArb, async (newReviewData) => {
+        currentTestDb = createFreshTestDb();
+        const userId = insertTestUser(currentTestDb);
+        const productId = insertTestProduct(currentTestDb, userId);
 
-          // Insere avaliações iniciais (>= 5 para ter insights completos)
-          for (let i = 0; i < 5; i++) {
-            insertReviewDirect(currentTestDb, {
-              productId,
-              userId,
-              text: `Avaliação inicial número ${String(i).padStart(3, '0')} com texto suficiente para teste`,
-              rating: (i % 5) + 1,
-              sentiment: ['positive', 'neutral', 'negative'][i % 3],
-              createdAt: `2024-01-01 00:${String(i).padStart(2, '0')}:00`,
-            });
-          }
-
-          // Gera insights iniciais
-          await recalculateSentimentDistribution(productId);
-
-          // Captura updatedAt antes da nova avaliação
-          const insightBefore = await findInsightByProductId(productId);
-          expect(insightBefore).not.toBeNull();
-          const updatedAtBefore = insightBefore.updatedAt;
-
-          // Pequeno delay para garantir timestamp diferente
-          await new Promise(resolve => setTimeout(resolve, 50));
-
-          // Adiciona nova avaliação
+        // Insere avaliações iniciais (>= 5 para ter insights completos)
+        for (let i = 0; i < 5; i++) {
           insertReviewDirect(currentTestDb, {
             productId,
             userId,
-            text: newReviewData.text,
-            rating: newReviewData.rating,
-            sentiment: newReviewData.sentiment,
+            text: `Avaliação inicial número ${String(i).padStart(3, '0')} com texto suficiente para teste`,
+            rating: (i % 5) + 1,
+            sentiment: ['positive', 'neutral', 'negative'][i % 3],
+            createdAt: `2024-01-01 00:${String(i).padStart(2, '0')}:00`,
           });
-
-          // Recalcula insights (simula pipeline de IA)
-          await recalculateSentimentDistribution(productId);
-
-          // Verifica que updatedAt foi atualizado
-          const insightAfter = await findInsightByProductId(productId);
-          expect(insightAfter).not.toBeNull();
-          expect(insightAfter.updatedAt).not.toBeNull();
-          // updatedAt deve ser >= ao anterior (SQLite datetime('now') pode ter resolução de 1s)
-          expect(insightAfter.updatedAt >= updatedAtBefore).toBe(true);
-
-          currentTestDb.close();
-          currentTestDb = null;
         }
-      ),
+
+        // Gera insights iniciais
+        await recalculateSentimentDistribution(productId);
+
+        // Captura updatedAt antes da nova avaliação
+        const insightBefore = await findInsightByProductId(productId);
+        expect(insightBefore).not.toBeNull();
+        const updatedAtBefore = insightBefore.updatedAt;
+
+        // Pequeno delay para garantir timestamp diferente
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        // Adiciona nova avaliação
+        insertReviewDirect(currentTestDb, {
+          productId,
+          userId,
+          text: newReviewData.text,
+          rating: newReviewData.rating,
+          sentiment: newReviewData.sentiment,
+        });
+
+        // Recalcula insights (simula pipeline de IA)
+        await recalculateSentimentDistribution(productId);
+
+        // Verifica que updatedAt foi atualizado
+        const insightAfter = await findInsightByProductId(productId);
+        expect(insightAfter).not.toBeNull();
+        expect(insightAfter.updatedAt).not.toBeNull();
+        // updatedAt deve ser >= ao anterior (SQLite datetime('now') pode ter resolução de 1s)
+        expect(insightAfter.updatedAt >= updatedAtBefore).toBe(true);
+
+        currentTestDb.close();
+        currentTestDb = null;
+      }),
       { numRuns: 50 }
     );
   });
 });
-
 
 // =============================================================================
 // P17 — Padrões detectados com >= 10 avaliações (com DB)
@@ -446,36 +446,38 @@ describe('P17 — padrões detectados com >= 10 avaliações (invariante de thre
 describe('P18 — padrões têm strengths e weaknesses (invariante de estrutura)', () => {
   it('para qualquer conjunto de avaliações com sentimentos mistos, detectPatterns deve ter strengths e weaknesses (não ambos vazios)', () => {
     // Gerador de avaliações com pelo menos uma positiva e uma negativa (garante conteúdo)
-    const mixedReviewsArb = fc.tuple(
-      // Pelo menos uma avaliação positiva com palavras significativas
-      fc.array(
-        fc.record({
-          text: fc.constantFrom(
-            'A qualidade deste produto é excelente e durável',
-            'Material resistente e bonito design moderno',
-            'Funciona perfeitamente como esperado sempre',
-            'Entrega rápida e embalagem segura protegida',
-            'Custo benefício ótimo recomendo comprar'
-          ),
-          sentiment: fc.constant('positive'),
-        }),
-        { minLength: 1, maxLength: 5 }
-      ),
-      // Pelo menos uma avaliação negativa com palavras significativas
-      fc.array(
-        fc.record({
-          text: fc.constantFrom(
-            'Produto quebrou depois de pouco tempo uso',
-            'Entrega atrasada e embalagem danificada muito',
-            'Material frágil e acabamento ruim péssimo',
-            'Defeito apareceu logo após primeira semana',
-            'Atendimento péssimo e suporte inexistente total'
-          ),
-          sentiment: fc.constant('negative'),
-        }),
-        { minLength: 1, maxLength: 5 }
+    const mixedReviewsArb = fc
+      .tuple(
+        // Pelo menos uma avaliação positiva com palavras significativas
+        fc.array(
+          fc.record({
+            text: fc.constantFrom(
+              'A qualidade deste produto é excelente e durável',
+              'Material resistente e bonito design moderno',
+              'Funciona perfeitamente como esperado sempre',
+              'Entrega rápida e embalagem segura protegida',
+              'Custo benefício ótimo recomendo comprar'
+            ),
+            sentiment: fc.constant('positive'),
+          }),
+          { minLength: 1, maxLength: 5 }
+        ),
+        // Pelo menos uma avaliação negativa com palavras significativas
+        fc.array(
+          fc.record({
+            text: fc.constantFrom(
+              'Produto quebrou depois de pouco tempo uso',
+              'Entrega atrasada e embalagem danificada muito',
+              'Material frágil e acabamento ruim péssimo',
+              'Defeito apareceu logo após primeira semana',
+              'Atendimento péssimo e suporte inexistente total'
+            ),
+            sentiment: fc.constant('negative'),
+          }),
+          { minLength: 1, maxLength: 5 }
+        )
       )
-    ).map(([pos, neg]) => [...pos, ...neg]);
+      .map(([pos, neg]) => [...pos, ...neg]);
 
     fc.assert(
       fc.property(mixedReviewsArb, (reviews) => {
@@ -559,25 +561,22 @@ describe('P20 — score no intervalo [0.0, 10.0] (invariante de range)', () => {
 describe('P21 — média simples matematicamente correta (invariante matemático)', () => {
   it('para qualquer conjunto de avaliações, a média simples calculada deve ser igual à média aritmética (±0.05)', () => {
     fc.assert(
-      fc.property(
-        fc.array(validRatingArb, { minLength: 1, maxLength: 30 }),
-        (ratings) => {
-          // Calcula a média aritmética esperada
-          const expectedAvg = ratings.reduce((acc, r) => acc + r, 0) / ratings.length;
-          const expectedRounded = Math.round(expectedAvg * 10) / 10;
+      fc.property(fc.array(validRatingArb, { minLength: 1, maxLength: 30 }), (ratings) => {
+        // Calcula a média aritmética esperada
+        const expectedAvg = ratings.reduce((acc, r) => acc + r, 0) / ratings.length;
+        const expectedRounded = Math.round(expectedAvg * 10) / 10;
 
-          // Simula o cálculo do insight-service (mesmo algoritmo de recalculateScore)
-          const ratingSum = ratings.reduce((acc, r) => acc + r, 0);
-          const simpleAverage = Math.round((ratingSum / ratings.length) * 10) / 10;
+        // Simula o cálculo do insight-service (mesmo algoritmo de recalculateScore)
+        const ratingSum = ratings.reduce((acc, r) => acc + r, 0);
+        const simpleAverage = Math.round((ratingSum / ratings.length) * 10) / 10;
 
-          // Deve ser igual à média aritmética com tolerância de ±0.05
-          expect(Math.abs(simpleAverage - expectedAvg)).toBeLessThanOrEqual(0.05);
+        // Deve ser igual à média aritmética arredondada (mesma lógica de arredondamento)
+        expect(simpleAverage).toBe(expectedRounded);
 
-          // Deve estar no intervalo válido [1.0, 5.0] (notas são 1–5)
-          expect(simpleAverage).toBeGreaterThanOrEqual(1.0);
-          expect(simpleAverage).toBeLessThanOrEqual(5.0);
-        }
-      ),
+        // Deve estar no intervalo válido [1.0, 5.0] (notas são 1–5)
+        expect(simpleAverage).toBeGreaterThanOrEqual(1.0);
+        expect(simpleAverage).toBeLessThanOrEqual(5.0);
+      }),
       { numRuns: 100 }
     );
   });

@@ -12,15 +12,21 @@ export async function createUser({ name, email, passwordHash }) {
   const db = getDb();
   const id = uuidv4();
 
-  const stmt = db.prepare(
-    'INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)'
-  );
+  // Verifica se já existe um usuário com o mesmo e-mail (constraint UNIQUE)
+  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (existing) {
+    throw new Error(`E-mail já cadastrado: ${email}`);
+  }
+
+  const stmt = db.prepare('INSERT INTO users (id, name, email, password_hash) VALUES (?, ?, ?, ?)');
   stmt.run(id, name, email, passwordHash);
 
   // Retorna o usuário recém-criado sem o hash da senha
-  const user = db.prepare(
-    'SELECT id, name, email, email_verified AS emailVerified, created_at AS createdAt FROM users WHERE id = ?'
-  ).get(id);
+  const user = db
+    .prepare(
+      'SELECT id, name, email, email_verified AS emailVerified, created_at AS createdAt FROM users WHERE id = ?'
+    )
+    .get(id);
 
   return user;
 }
@@ -34,9 +40,11 @@ export async function createUser({ name, email, passwordHash }) {
 export async function findByEmail(email) {
   const db = getDb();
 
-  const user = db.prepare(
-    'SELECT id, name, email, password_hash AS passwordHash, email_verified AS emailVerified, created_at AS createdAt FROM users WHERE email = ?'
-  ).get(email);
+  const user = db
+    .prepare(
+      'SELECT id, name, email, password_hash AS passwordHash, email_verified AS emailVerified, created_at AS createdAt FROM users WHERE email = ?'
+    )
+    .get(email);
 
   return user || null;
 }
@@ -50,9 +58,11 @@ export async function findByEmail(email) {
 export async function findById(id) {
   const db = getDb();
 
-  const user = db.prepare(
-    'SELECT id, name, email, email_verified AS emailVerified, created_at AS createdAt FROM users WHERE id = ?'
-  ).get(id);
+  const user = db
+    .prepare(
+      'SELECT id, name, email, email_verified AS emailVerified, created_at AS createdAt FROM users WHERE id = ?'
+    )
+    .get(id);
 
   return user || null;
 }

@@ -7,6 +7,11 @@ jest.unstable_mockModule('../services/auth-service.js', () => ({
   registerUser: jest.fn(),
   loginUser: jest.fn(),
   logoutUser: jest.fn(),
+  isTokenBlacklisted: jest.fn().mockReturnValue(false),
+  verifyToken: jest.fn(),
+  hashPassword: jest.fn(),
+  comparePassword: jest.fn(),
+  generateToken: jest.fn(),
 }));
 
 const { registerUser, loginUser, logoutUser } = await import('../services/auth-service.js');

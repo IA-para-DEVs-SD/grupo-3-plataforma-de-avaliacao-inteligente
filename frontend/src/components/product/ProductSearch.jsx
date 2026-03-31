@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useProducts } from '../../hooks/useProducts.js';
 import ProductCard from './ProductCard.jsx';
 
@@ -14,17 +14,13 @@ export default function ProductSearch() {
   // Controla se uma busca já foi realizada (para exibir mensagem de vazio)
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Carrega todos os produtos ao montar o componente
-  useEffect(() => {
-    search('');
-    setHasSearched(true);
-  }, [search]);
-
   /** Dispara a busca ao submeter o formulário */
   async function handleSubmit(event) {
     event.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) return;
     setHasSearched(true);
-    await search(query.trim());
+    await search(trimmed);
   }
 
   return (
