@@ -1,37 +1,16 @@
 // Testes de propriedade para autenticação — fast-check + Jest
 // Valida propriedades P1–P5 do design doc (Requisito 1)
-import { jest, describe, it, expect, afterEach } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import fc from 'fast-check';
-import Database from 'better-sqlite3';
 
 // --- Configuração do JWT_SECRET antes de qualquer import de serviço ---
 process.env.JWT_SECRET = 'pbt-test-secret-key-for-auth-properties';
 
+// --- Helpers compartilhados para banco em memória ---
+import { createFreshTestDb } from './test-helpers.js';
+
 // --- Banco em memória compartilhado por iteração ---
 let currentTestDb = null;
-
-// SQL de criação das tabelas (mesmo schema do connection.js)
-const CREATE_TABLES_SQL = `
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    email_verified INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-`;
-
-/**
- * Cria um banco em memória com schema aplicado para cada iteração do PBT.
- */
-function createFreshTestDb() {
-  const db = new Database(':memory:');
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.exec(CREATE_TABLES_SQL);
-  return db;
-}
 
 // --- Mock do módulo de conexão para usar banco em memória ---
 jest.unstable_mockModule('../database/connection.js', () => ({

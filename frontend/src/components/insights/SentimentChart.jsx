@@ -1,7 +1,8 @@
 /**
  * Gráfico de distribuição de sentimento.
  * Exibe barras horizontais com percentuais de avaliações positivas, neutras e negativas.
- * Props: { distribution: { positive: number, neutral: number, negative: number } }
+ * @param {{ distribution: { positive: number, neutral: number, negative: number } | null }} props
+ * @param {{ positive: number, neutral: number, negative: number } | null} props.distribution — percentuais de sentimento (soma = 100%), null se sem dados
  */
 export default function SentimentChart({ distribution }) {
   if (!distribution) return null;

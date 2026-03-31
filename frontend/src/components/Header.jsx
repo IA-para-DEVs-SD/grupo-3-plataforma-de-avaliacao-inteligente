@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.js';
 /**
  * Componente Header da aplicação.
  * Exibe logo/título, campo de busca global e botões de autenticação.
+ * Não recebe props — consome estado de autenticação via useAuth hook.
  */
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();

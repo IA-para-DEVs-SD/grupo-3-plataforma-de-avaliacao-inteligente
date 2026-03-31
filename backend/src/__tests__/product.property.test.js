@@ -1,74 +1,16 @@
 // Testes de propriedade para produtos — fast-check + Jest
 // Valida propriedades P6–P8 do design doc (Requisito 2)
-import { jest, describe, it, expect, afterEach } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import fc from 'fast-check';
-import Database from 'better-sqlite3';
-import { v4 as uuidv4 } from 'uuid';
 
 // --- Configuração do JWT_SECRET antes de qualquer import de serviço ---
 process.env.JWT_SECRET = 'pbt-test-secret-key-for-product-properties';
 
+// --- Helpers compartilhados para banco em memória ---
+import { createFreshTestDb, insertTestUser } from './test-helpers.js';
+
 // --- Banco em memória compartilhado por iteração ---
 let currentTestDb = null;
-
-// SQL de criação das tabelas (mesmo schema do connection.js)
-const CREATE_TABLES_SQL = `
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    email_verified INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL,
-    category TEXT NOT NULL,
-    image_url TEXT,
-    created_by TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (created_by) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS reviews (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    text TEXT NOT NULL,
-    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
-    sentiment TEXT CHECK(sentiment IN ('positive', 'neutral', 'negative')),
-    sentiment_processed_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-`;
-
-/**
- * Cria um banco em memória com schema aplicado para cada iteração do PBT.
- */
-function createFreshTestDb() {
-  const db = new Database(':memory:');
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.exec(CREATE_TABLES_SQL);
-  return db;
-}
-
-/**
- * Insere um usuário de teste diretamente no banco para satisfazer FK de products.
- * Retorna o ID do usuário criado.
- */
-function insertTestUser(db) {
-  const userId = uuidv4();
-  db.prepare(
-    "INSERT INTO users (id, name, email, password_hash) VALUES (?, 'Test User', ?, 'hash123')"
-  ).run(userId, `user-${userId}@test.com`);
-  return userId;
-}
 
 // --- Mock do módulo de conexão para usar banco em memória ---
 jest.unstable_mockModule('../database/connection.js', () => ({

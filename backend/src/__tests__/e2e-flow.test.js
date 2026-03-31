@@ -1,82 +1,15 @@
 // Teste de integração e2e — fluxo completo: cadastro → login → criar produto → submeter avaliação → listar avaliações → consultar insights
 // Valida o fluxo principal do usuário de ponta a ponta usando supertest com banco em memória
-import { jest, describe, test, expect, beforeAll, afterAll } from '@jest/globals';
-import Database from 'better-sqlite3';
+import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
 
 // --- Configuração do ambiente de teste ---
 process.env.JWT_SECRET = 'e2e-test-secret-key';
 process.env.NODE_ENV = 'test';
 
+// --- Helpers compartilhados para banco em memória ---
+
 // --- Banco em memória compartilhado para todo o fluxo e2e ---
 let testDb = null;
-
-// SQL de criação das tabelas (mesmo schema do connection.js)
-const CREATE_TABLES_SQL = `
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    email_verified INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL,
-    category TEXT NOT NULL,
-    image_url TEXT,
-    created_by TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (created_by) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS reviews (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    text TEXT NOT NULL,
-    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
-    sentiment TEXT CHECK(sentiment IN ('positive', 'neutral', 'negative')),
-    sentiment_processed_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS product_insights (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL UNIQUE,
-    summary TEXT,
-    patterns TEXT,
-    smart_score REAL,
-    simple_average REAL,
-    sentiment_distribution TEXT,
-    review_count_at_last_update INTEGER DEFAULT 0,
-    updated_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-  );
-`;
-
-const CREATE_INDEXES_SQL = `
-  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-  CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
-  CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
-  CREATE INDEX IF NOT EXISTS idx_product_insights_product_id ON product_insights(product_id);
-`;
-
-/**
- * Cria banco em memória com schema completo para o teste e2e.
- */
-function createE2eTestDb() {
-  const db = new Database(':memory:');
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.exec(CREATE_TABLES_SQL);
-  db.exec(CREATE_INDEXES_SQL);
-  return db;
-}
 
 // --- Mock do módulo de conexão para usar banco em memória ---
 jest.unstable_mockModule('../database/connection.js', () => ({
@@ -87,7 +20,7 @@ jest.unstable_mockModule('../database/connection.js', () => ({
       testDb = null;
     }
   },
-  getTestDb: () => createE2eTestDb(),
+  getTestDb: () => createFreshTestDb(),
 }));
 
 // --- Importa o app Express após o mock do banco ---
@@ -118,7 +51,7 @@ describe('Fluxo e2e: cadastro → login → produto → avaliação → insights
   let reviewId = null;
 
   beforeAll(() => {
-    testDb = createE2eTestDb();
+    testDb = createFreshTestDb();
   });
 
   afterAll(() => {

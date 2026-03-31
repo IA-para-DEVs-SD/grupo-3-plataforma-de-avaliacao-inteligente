@@ -1,7 +1,8 @@
 // Rotas de autenticação — registro, login e logout
 import { Router } from 'express';
-import { register, login, logout } from '../controllers/auth-controller.js';
-import { validateRegister, validateLogin } from '../middleware/validation-middleware.js';
+import { login, logout, register } from '../controllers/auth-controller.js';
+import { authMiddleware } from '../middleware/auth-middleware.js';
+import { validateLogin, validateRegister } from '../middleware/validation-middleware.js';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.post('/register', validateRegister, register);
 // Login de usuário existente (com validação de entrada)
 router.post('/login', validateLogin, login);
 
-// Logout (invalidação de token no cliente)
-router.post('/logout', logout);
+// Logout (autenticado — invalida o token na blacklist)
+router.post('/logout', authMiddleware, logout);
 
 export default router;

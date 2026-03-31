@@ -2,10 +2,9 @@
  * Tags de padrões recorrentes identificados pela IA.
  * Exibe tags separadas em "Pontos Fortes" (verde) e "Pontos Fracos" (vermelho).
  * Cada tag é clicável — ao clicar, filtra avaliações pelo padrão selecionado.
- * Props: {
- *   patterns: { strengths: string[], weaknesses: string[] } | null,
- *   onPatternClick: (pattern: string) => void
- * }
+ * @param {{ patterns: { strengths: string[], weaknesses: string[] } | null, onPatternClick: Function }} props
+ * @param {{ strengths: string[], weaknesses: string[] } | null} props.patterns — padrões detectados pela IA, null se abaixo do threshold de 10 avaliações
+ * @param {(pattern: string) => void} props.onPatternClick — callback chamado ao clicar em uma tag para filtrar avaliações
  */
 export default function PatternTags({ patterns, onPatternClick }) {
   if (!patterns) return null;

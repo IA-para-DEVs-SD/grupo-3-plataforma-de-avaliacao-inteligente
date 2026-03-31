@@ -1,123 +1,26 @@
 // Testes de propriedade para o motor de IA — fast-check + Jest
-// Valida propriedades P13–P18, P20–P21 do design doc (Requisitos 4, 5, 6, 7)
-import { jest, describe, it, expect, afterEach } from '@jest/globals';
+// Valida propriedades P13–P21 do design doc (Requisitos 4, 5, 6, 7)
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import fc from 'fast-check';
-import Database from 'better-sqlite3';
-import { v4 as uuidv4 } from 'uuid';
 
 // --- Configuração do JWT_SECRET antes de qualquer import de serviço ---
 process.env.JWT_SECRET = 'pbt-test-secret-key-for-ai-engine-properties';
 
-// --- Importações diretas de funções puras (P13, P18, P20, P21) ---
-import { analyzeSentiment } from '../ai-engine/sentiment-analyzer.js';
-import { calculateSmartScore } from '../ai-engine/score-calculator.js';
+// --- Importações diretas de funções puras (P13, P18, P19, P20, P21) ---
 import { detectPatterns } from '../ai-engine/pattern-detector.js';
-import { generateSummary } from '../ai-engine/summary-generator.js';
+import { calculateSmartScore } from '../ai-engine/score-calculator.js';
+import { analyzeSentiment } from '../ai-engine/sentiment-analyzer.js';
+
+// --- Helpers compartilhados para banco em memória ---
+import {
+    createFreshTestDb,
+    insertReviewDirect,
+    insertTestProduct,
+    insertTestUser,
+} from './test-helpers.js';
 
 // --- Banco em memória compartilhado por iteração (P14, P15, P16, P17) ---
 let currentTestDb = null;
-
-// SQL de criação das tabelas (mesmo schema do connection.js)
-const CREATE_TABLES_SQL = `
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    email_verified INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL,
-    category TEXT NOT NULL,
-    image_url TEXT,
-    created_by TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (created_by) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS reviews (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    text TEXT NOT NULL,
-    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
-    sentiment TEXT CHECK(sentiment IN ('positive', 'neutral', 'negative')),
-    sentiment_processed_at TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS product_insights (
-    id TEXT PRIMARY KEY,
-    product_id TEXT NOT NULL UNIQUE,
-    summary TEXT,
-    patterns TEXT,
-    smart_score REAL,
-    simple_average REAL,
-    sentiment_distribution TEXT,
-    review_count_at_last_update INTEGER DEFAULT 0,
-    updated_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-  );
-`;
-
-const CREATE_INDEXES_SQL = `
-  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-  CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
-  CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
-  CREATE INDEX IF NOT EXISTS idx_product_insights_product_id ON product_insights(product_id);
-`;
-
-/**
- * Cria um banco em memória com schema aplicado para cada iteração do PBT.
- */
-function createFreshTestDb() {
-  const db = new Database(':memory:');
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.exec(CREATE_TABLES_SQL);
-  db.exec(CREATE_INDEXES_SQL);
-  return db;
-}
-
-/**
- * Insere um usuário de teste diretamente no banco para satisfazer FK.
- */
-function insertTestUser(db) {
-  const userId = uuidv4();
-  db.prepare(
-    "INSERT INTO users (id, name, email, password_hash) VALUES (?, 'Test User', ?, 'hash123')"
-  ).run(userId, `user-${userId}@test.com`);
-  return userId;
-}
-
-/**
- * Insere um produto de teste diretamente no banco para satisfazer FK.
- */
-function insertTestProduct(db, userId) {
-  const productId = uuidv4();
-  db.prepare(
-    "INSERT INTO products (id, name, description, category, created_by) VALUES (?, 'Produto Teste IA', 'Descrição do produto para testes de IA', 'Eletrônicos', ?)"
-  ).run(productId, userId);
-  return productId;
-}
-
-/**
- * Insere uma avaliação diretamente no banco com sentimento e timestamp controlados.
- */
-function insertReviewDirect(db, { productId, userId, text, rating, sentiment = null, createdAt = null }) {
-  const id = uuidv4();
-  const ts = createdAt || new Date().toISOString().replace('T', ' ').slice(0, 19);
-  db.prepare(
-    'INSERT INTO reviews (id, product_id, user_id, text, rating, sentiment, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, productId, userId, text, rating, sentiment, ts);
-  return id;
-}
 
 // --- Mock do módulo de conexão para usar banco em memória ---
 jest.unstable_mockModule('../database/connection.js', () => ({
@@ -491,6 +394,55 @@ describe('P18 — padrões têm strengths e weaknesses (invariante de estrutura)
         expect(patterns.strengths.length + patterns.weaknesses.length).toBeGreaterThan(0);
       }),
       { numRuns: 100 }
+    );
+  });
+});
+
+// =============================================================================
+// P19 — Score não calculado com < 3 avaliações (invariante de threshold, com DB)
+// =============================================================================
+
+// Feature: smart-product-reviews, Property 19: score requer >= 3 avaliações
+// Para qualquer produto com menos de 3 avaliações, recalculateScore deve retornar null.
+// **Validates: Requirements 7.1**
+describe('P19 — score não calculado com < 3 avaliações (invariante de threshold)', () => {
+  it('para qualquer produto com 1 ou 2 avaliações, recalculateScore deve retornar null', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(classifiedReviewArb, { minLength: 1, maxLength: 2 }),
+        async (reviewsData) => {
+          currentTestDb = createFreshTestDb();
+          const userId = insertTestUser(currentTestDb);
+          const productId = insertTestProduct(currentTestDb, userId);
+
+          // Insere 1 ou 2 avaliações (abaixo do threshold de 3)
+          for (let i = 0; i < reviewsData.length; i++) {
+            insertReviewDirect(currentTestDb, {
+              productId,
+              userId,
+              text: reviewsData[i].text,
+              rating: reviewsData[i].rating,
+              sentiment: reviewsData[i].sentiment,
+              createdAt: `2024-01-01 00:${String(i).padStart(2, '0')}:00`,
+            });
+          }
+
+          // Tenta recalcular score — deve retornar null (abaixo do threshold)
+          const result = await recalculateScore(productId);
+          expect(result).toBeNull();
+
+          // Verifica que nenhum score foi persistido
+          const insight = await findInsightByProductId(productId);
+          // Insight pode não existir ou, se existir, smartScore deve ser null
+          if (insight) {
+            expect(insight.smartScore).toBeNull();
+          }
+
+          currentTestDb.close();
+          currentTestDb = null;
+        }
+      ),
+      { numRuns: 50 }
     );
   });
 });

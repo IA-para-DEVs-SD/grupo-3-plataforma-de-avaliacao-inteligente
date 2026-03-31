@@ -4,6 +4,12 @@ import { Link } from 'react-router-dom';
  * Card de produto exibindo nome, categoria e imagem.
  * Cada card é um link para a página de detalhes do produto.
  * Usa imagem placeholder quando o produto não possui imageUrl.
+ * @param {{ product: { id: string, name: string, category: string, imageUrl?: string } }} props
+ * @param {object} props.product — dados do produto a exibir
+ * @param {string} props.product.id — identificador único do produto (usado na URL)
+ * @param {string} props.product.name — nome do produto
+ * @param {string} props.product.category — categoria do produto
+ * @param {string} [props.product.imageUrl] — URL da imagem do produto (opcional)
  */
 export default function ProductCard({ product }) {
   const { id, name, category, imageUrl } = product;

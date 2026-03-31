@@ -96,3 +96,23 @@ export const validateLogin = [
 
   handleValidationErrors,
 ];
+
+/**
+ * Validação para criação de avaliação:
+ * - text: não vazio, trimmed, mínimo 20 caracteres
+ * - rating: inteiro entre 1 e 5
+ */
+export const validateCreateReview = [
+  body('text')
+    .trim()
+    .notEmpty()
+    .withMessage('Texto da avaliação é obrigatório')
+    .isLength({ min: 20 })
+    .withMessage('Texto da avaliação deve ter no mínimo 20 caracteres'),
+
+  body('rating')
+    .isInt({ min: 1, max: 5 })
+    .withMessage('Nota deve ser um número inteiro entre 1 e 5'),
+
+  handleValidationErrors,
+];

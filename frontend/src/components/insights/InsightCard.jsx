@@ -2,7 +2,8 @@
  * Card de resumo automático de avaliações.
  * Exibe listas de pontos positivos e negativos gerados pela IA.
  * Se o resumo não estiver disponível, exibe mensagem informativa.
- * Props: { summary: { positives: string[], negatives: string[] } | null }
+ * @param {{ summary: { positives: string[], negatives: string[] } | null }} props
+ * @param {{ positives: string[], negatives: string[] } | null} props.summary — resumo gerado pela IA, null se abaixo do threshold de 5 avaliações
  */
 export default function InsightCard({ summary }) {
   // Resumo indisponível — exibe mensagem de threshold
