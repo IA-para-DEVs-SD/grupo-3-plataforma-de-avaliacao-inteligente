@@ -17,15 +17,15 @@ const notFoundHandler = (req, res, _next) => {
  */
 const errorHandler = (err, _req, res, _next) => {
   const status = err.status || err.statusCode || 500;
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const response = {
     error: {
       status,
       message:
         status === 500 && isProduction
-          ? "Erro interno do servidor"
-          : err.message || "Erro interno do servidor",
+          ? 'Erro interno do servidor'
+          : err.message || 'Erro interno do servidor',
     },
   };
 
@@ -41,4 +41,4 @@ const errorHandler = (err, _req, res, _next) => {
   res.status(status).json(response);
 };
 
-module.exports = { notFoundHandler, errorHandler };
+export { notFoundHandler, errorHandler };

@@ -9,9 +9,7 @@ import helmet from 'helmet';
 import authRoutes from './routes/auth-routes.js';
 import productRoutes from './routes/product-routes.js';
 import reviewRoutes from './routes/review-routes.js';
-require('dotenv').config();
-
-const { notFoundHandler, errorHandler } = require('./middleware/error-handler');
+import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,7 +23,7 @@ app.use(compression());
 app.use(express.json({ limit: '10kb' }));
 
 // Rota de health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
@@ -39,10 +37,6 @@ app.use(notFoundHandler);
 
 // Middleware centralizado de tratamento de erros (deve ser o último)
 app.use(errorHandler);
-
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
 
 // Inicia o servidor apenas quando executado diretamente (não em testes)
 const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
