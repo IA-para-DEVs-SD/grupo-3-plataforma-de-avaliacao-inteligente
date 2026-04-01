@@ -5,7 +5,7 @@
  *
  * @param {{ smartScore: number|null, simpleAverage: number|null, smartScoreConfidence: number|null }} props
  */
-export default function SmartScore({ smartScore, simpleAverage, smartScoreConfidence }) {
+export default function SmartScore({ smartScore, simpleAverage, smartScoreConfidence, scoreExplanation }) {
   /** Converte score 0-10 para estrelas 0-5 */
   const renderStars = (score) => {
     const starCount = Math.round(score / 2);
@@ -51,23 +51,19 @@ export default function SmartScore({ smartScore, simpleAverage, smartScoreConfid
               {smartScoreConfidence != null && (
                 <div style={styles.confidenceWrapper} aria-label={`Confiança: ${smartScoreConfidence}%`}>
                   <div style={styles.confidenceBarBg}>
-                    <div
-                      style={{
-                        ...styles.confidenceBarFill,
-                        width: `${smartScoreConfidence}%`,
-                        backgroundColor: confidenceColor(smartScoreConfidence),
-                      }}
-                    />
+                    <div style={{ ...styles.confidenceBarFill, width: `${smartScoreConfidence}%`, backgroundColor: confidenceColor(smartScoreConfidence) }} />
                   </div>
-                  <span
-                    style={{
-                      ...styles.confidenceText,
-                      color: confidenceColor(smartScoreConfidence),
-                    }}
-                  >
+                  <span style={{ ...styles.confidenceText, color: confidenceColor(smartScoreConfidence) }}>
                     {confidenceLabel(smartScoreConfidence)} ({smartScoreConfidence}%)
                   </span>
                 </div>
+              )}
+
+              {/* Explicação do score gerada pela IA */}
+              {scoreExplanation && (
+                <p style={styles.explanation} aria-label="Explicação do score">
+                  💡 {scoreExplanation}
+                </p>
               )}
             </>
           ) : (
@@ -118,4 +114,9 @@ const styles = {
   confidenceBarBg: { width: '100%', height: '6px', backgroundColor: 'var(--color-border)', borderRadius: '3px', overflow: 'hidden' },
   confidenceBarFill: { height: '100%', borderRadius: '3px', transition: 'width 0.4s ease' },
   confidenceText: { fontSize: '0.75rem', fontWeight: 500 },
+  explanation: {
+    fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic',
+    textAlign: 'center', marginTop: '0.5rem', lineHeight: 1.4, padding: '0 0.5rem',
+    width: '100%',
+  },
 };

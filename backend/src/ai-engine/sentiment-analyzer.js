@@ -5,7 +5,40 @@ import { generate, isOllamaAvailable } from './ollama-client.js';
 
 // ── Fallback heurístico ────────────────────────────────────────────────────
 
-const POSITIVE_WORDS = {
+/**
+ * Remove acentos de uma string para normalização.
+ * Usado para criar versões sem acento das chaves do dicionário.
+ */
+function removeAccents(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Reduz caracteres repetidos excessivos para no máximo 2.
+ * Ex: "bommmmm" → "bomm", "horríveeeel" → "horríveeel"
+ * Permite que palavras com letras repetidas ainda casem com o dicionário.
+ */
+function reduceRepeatedChars(str) {
+  return str.replace(/(.)\1{2,}/g, '$1$1');
+}
+
+/**
+ * Constrói um mapa de lookup que aceita tanto a forma acentuada quanto sem acento.
+ * Ex: { "excepcional": 3, "excepcional": 3 } — garante que ambas as formas casem.
+ */
+function buildLookupMap(wordMap) {
+  const lookup = {};
+  for (const [word, weight] of Object.entries(wordMap)) {
+    lookup[word] = weight;
+    const withoutAccent = removeAccents(word);
+    if (withoutAccent !== word) {
+      lookup[withoutAccent] = weight;
+    }
+  }
+  return lookup;
+}
+
+const POSITIVE_WORDS_RAW = {
   excelente: 3, perfeito: 3, maravilhoso: 3, incrível: 3, excepcional: 3,
   fantástico: 3, espetacular: 3, sensacional: 3, impecável: 3, extraordinário: 3,
   ótimo: 2, adorei: 2, recomendo: 2, satisfeito: 2, qualidade: 2,
@@ -18,7 +51,7 @@ const POSITIVE_WORDS = {
   atendeu: 1, cumpre: 1, funciona: 1, chegou: 1, entregou: 1,
 };
 
-const NEGATIVE_WORDS = {
+const NEGATIVE_WORDS_RAW = {
   péssimo: 3, horrível: 3, terrível: 3, lixo: 3, inaceitável: 3,
   vergonhoso: 3, absurdo: 3, ridículo: 3, deplorável: 3, catastrófico: 3,
   ruim: 2, defeito: 2, problema: 2, quebrou: 2, decepcionante: 2,
@@ -28,6 +61,10 @@ const NEGATIVE_WORDS = {
   regular: 1, mediano: 1, fraco: 1, demora: 1, lento: 1,
   pesado: 1, difícil: 1, complicado: 1, caro: 1, barulhento: 1,
 };
+
+// Mapas de lookup com versões acentuadas e sem acento
+const POSITIVE_WORDS = buildLookupMap(POSITIVE_WORDS_RAW);
+const NEGATIVE_WORDS = buildLookupMap(NEGATIVE_WORDS_RAW);
 
 const NEGATION_WORDS = new Set([
   'não', 'nao', 'nunca', 'jamais', 'nem', 'tampouco',
@@ -46,39 +83,50 @@ function scoreCompoundExpressions(text, wordMap) {
 
 /**
  * Análise heurística de sentimento (fallback quando Ollama indisponível).
+ * Normaliza sem acento, reduz caracteres repetidos e compara com lookup duplo.
  * @param {string} text
  * @returns {'positive' | 'neutral' | 'negative'}
  */
 function analyzeSentimentHeuristic(text) {
   if (!text || typeof text !== 'string') return 'neutral';
 
-  const normalized = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Normaliza: minúsculo → remove acentos → reduz chars repetidos → remove pontuação
+  const normalized = reduceRepeatedChars(
+    removeAccents(text.toLowerCase())
+  ).replace(/[^a-z\s]/g, ' ');  // remove pontuação para não grudar com palavras
   const words = normalized.split(/\s+/);
 
   let positiveScore = 0;
   let negativeScore = 0;
 
-  const normalizedFull = text.toLowerCase();
+  // Pontua expressões compostas (sem acento também)
+  const normalizedFull = removeAccents(text.toLowerCase());
   positiveScore += scoreCompoundExpressions(normalizedFull, POSITIVE_WORDS);
   negativeScore += scoreCompoundExpressions(normalizedFull, NEGATIVE_WORDS);
+
+  // Negation words também sem acento
+  const NEGATION_NORMALIZED = new Set(
+    [...NEGATION_WORDS].map(removeAccents)
+  );
 
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
     let isNegated = false;
     for (let j = Math.max(0, i - NEGATION_WINDOW); j < i; j++) {
-      if (NEGATION_WORDS.has(words[j])) { isNegated = true; break; }
+      if (NEGATION_NORMALIZED.has(words[j])) { isNegated = true; break; }
     }
 
-    const posWeight = POSITIVE_WORDS[word] || 0;
-    const negWeight = NEGATIVE_WORDS[word] || 0;
+    const posWeight = POSITIVE_WORDS[word] || POSITIVE_WORDS[word.replace(/(.)\1+$/, '$1')] || 0;
+    const negWeight = NEGATIVE_WORDS[word] || NEGATIVE_WORDS[word.replace(/(.)\1+$/, '$1')] || 0;
 
     if (posWeight > 0) isNegated ? (negativeScore += posWeight) : (positiveScore += posWeight);
     if (negWeight > 0) isNegated ? (positiveScore += negWeight) : (negativeScore += negWeight);
   }
 
+  // Margem de 0 para palavras com peso alto — qualquer diferença classifica
   const diff = positiveScore - negativeScore;
-  if (diff > 1) return 'positive';
-  if (diff < -1) return 'negative';
+  if (diff > 0) return 'positive';
+  if (diff < 0) return 'negative';
   return 'neutral';
 }
 

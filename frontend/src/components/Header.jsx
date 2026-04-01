@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useTheme } from '../contexts/ThemeContext.jsx';
+import ProductChat from './chat/ProductChat.jsx';
 
 /**
  * Componente Header da aplicação.
@@ -12,6 +13,7 @@ export default function Header() {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -43,16 +45,22 @@ export default function Header() {
 
         <nav style={styles.authNav} aria-label="Navegação">
           {/* Toggle de tema */}
-          <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-            title={isDark ? 'Modo claro' : 'Modo escuro'}
-          >
+          <button className="theme-toggle" onClick={toggleTheme}
+            aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}>
             <span>{isDark ? '☀️' : '🌙'}</span>
             <span className="theme-toggle-track">
               <span className={`theme-toggle-knob${isDark ? ' active' : ''}`} />
             </span>
+          </button>
+
+          {/* Botão do chat de recomendação */}
+          <button
+            onClick={() => setChatOpen(true)}
+            style={styles.chatBtn}
+            aria-label="Abrir assistente de recomendação"
+            title="Precisa de ajuda para escolher um produto?"
+          >
+            🤖 Assistente
           </button>
 
           {isAuthenticated ? (
@@ -68,6 +76,9 @@ export default function Header() {
           )}
         </nav>
       </div>
+
+      {/* Chat de recomendação */}
+      {chatOpen && <ProductChat onClose={() => setChatOpen(false)} />}
     </header>
   );
 }
@@ -141,6 +152,12 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontSize: '0.85rem',
+  },
+  chatBtn: {
+    display: 'flex', alignItems: 'center', gap: '0.3rem',
+    background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+    color: '#fff', cursor: 'pointer', fontSize: '0.85rem',
+    padding: '0.35rem 0.7rem', borderRadius: '20px', whiteSpace: 'nowrap',
   },
   authLink: {
     color: 'var(--color-text-header)',

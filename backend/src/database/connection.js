@@ -54,6 +54,7 @@ const CREATE_TABLES_SQL = `
     patterns TEXT,
     smart_score REAL,
     smart_score_confidence INTEGER DEFAULT 0,
+    score_explanation TEXT,
     simple_average REAL,
     sentiment_distribution TEXT,
     review_count_at_last_update INTEGER DEFAULT 0,
@@ -83,6 +84,10 @@ function applyMigrations(db) {
   const hasConfidence = cols.some((c) => c.name === 'smart_score_confidence');
   if (!hasConfidence) {
     db.exec('ALTER TABLE product_insights ADD COLUMN smart_score_confidence INTEGER DEFAULT 0');
+  }
+  const hasExplanation = cols.some((c) => c.name === 'score_explanation');
+  if (!hasExplanation) {
+    db.exec('ALTER TABLE product_insights ADD COLUMN score_explanation TEXT');
   }
 }
 

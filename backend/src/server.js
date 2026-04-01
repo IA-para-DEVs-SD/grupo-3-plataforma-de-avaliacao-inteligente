@@ -9,6 +9,7 @@ import authRoutes from './routes/auth-routes.js';
 import productRoutes from './routes/product-routes.js';
 import reviewRoutes from './routes/review-routes.js';
 import healthRoutes from './routes/health-routes.js';
+import chatRoutes from './routes/chat-routes.js';
 import { startAutoReclassify } from './ai-engine/auto-reclassify.js';
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(express.json());
 
 // Rota de health check
 app.use('/health', healthRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Rotas da API
 app.use('/api/auth', authRoutes);

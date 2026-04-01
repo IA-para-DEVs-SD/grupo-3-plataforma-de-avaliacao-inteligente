@@ -145,6 +145,7 @@ export default function ProductDetail() {
             smartScore={insights?.smartScore ?? null}
             simpleAverage={insights?.simpleAverage ?? null}
             smartScoreConfidence={insights?.smartScoreConfidence ?? null}
+            scoreExplanation={insights?.scoreExplanation ?? null}
           />
 
           {/* InsightCard — resumo automático */}

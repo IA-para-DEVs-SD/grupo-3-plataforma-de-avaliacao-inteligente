@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { validateReviewText, validateRating } from '../../utils/validators.js';
+import { getReviewTip } from '../../services/chat-service.js';
 
 /** Mínimo de caracteres exigido para o texto da avaliação */
 const MIN_TEXT_LENGTH = 20;
@@ -20,6 +21,8 @@ export default function ReviewForm({ onSubmit, loading: externalLoading }) {
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [reviewTip, setReviewTip] = useState(null);
+  const tipTimerRef = useRef(null);
 
   if (!isAuthenticated) {
     return (
@@ -66,6 +69,20 @@ export default function ReviewForm({ onSubmit, loading: externalLoading }) {
   const isLoading = submitting || externalLoading;
   const charCount = text.length;
   const charOk = charCount >= MIN_TEXT_LENGTH;
+
+  // Solicita dica de melhoria após o usuário parar de digitar (debounce 2s)
+  useEffect(() => {
+    if (text.length < 30 || !rating) return;
+    clearTimeout(tipTimerRef.current);
+    tipTimerRef.current = setTimeout(async () => {
+      try {
+        const result = await getReviewTip(text, rating, 'produto');
+        if (result.quality !== 'high') setReviewTip(result.tip);
+        else setReviewTip(null);
+      } catch { /* silencioso */ }
+    }, 2000);
+    return () => clearTimeout(tipTimerRef.current);
+  }, [text, rating]);
 
   return (
     <form onSubmit={handleSubmit} style={styles.form} aria-label="Formulário de avaliação">
@@ -135,6 +152,13 @@ export default function ReviewForm({ onSubmit, loading: externalLoading }) {
 
       {apiError && <p style={styles.apiError} role="alert">{apiError}</p>}
 
+      {/* Dica do assistente de avaliação */}
+      {reviewTip && (
+        <p style={styles.reviewTip} role="status">
+          💡 <strong>Dica:</strong> {reviewTip}
+        </p>
+      )}
+
       <button
         type="submit"
         disabled={isLoading}
@@ -178,6 +202,12 @@ const styles = {
     margin: 0, padding: '0.5rem 0.75rem',
     backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error-text)',
     borderRadius: '4px', fontSize: '0.85rem',
+  },
+  reviewTip: {
+    margin: 0, padding: '0.5rem 0.75rem', fontSize: '0.85rem',
+    backgroundColor: 'var(--color-bg-ai-banner)',
+    border: '1px solid var(--color-border-ai-banner)',
+    borderRadius: '6px', color: 'var(--color-text)',
   },
   submitButton: {
     padding: '0.75rem 1.5rem', borderRadius: '6px', border: 'none',

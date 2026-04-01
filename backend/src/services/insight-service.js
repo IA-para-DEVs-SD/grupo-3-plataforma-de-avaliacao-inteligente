@@ -4,6 +4,7 @@ import { upsertInsight, findByProductId } from '../models/product-insight-model.
 import { generateSummary } from '../ai-engine/summary-generator.js';
 import { detectPatterns } from '../ai-engine/pattern-detector.js';
 import { calculateSmartScore } from '../ai-engine/score-calculator.js';
+import { explainScore } from '../ai-engine/score-explainer.js';
 import { getCached, setCached, invalidate } from './insight-cache.js';
 
 /** Threshold mínimo de avaliações para gerar resumo automático */
@@ -165,9 +166,19 @@ export async function recalculateScore(productId) {
 
   const smartScore = calculateSmartScore(reviews, sentimentDistribution, patterns);
 
+  // Gera explicação do score via Ollama (assíncrono, não bloqueia)
+  const scoreExplanation = await explainScore(
+    smartScore.score,
+    smartScore.confidence,
+    sentimentDistribution,
+    patterns,
+    reviews.length
+  );
+
   const insight = await upsertInsight(productId, {
     smartScore: smartScore.score,
     smartScoreConfidence: smartScore.confidence,
+    scoreExplanation,
     simpleAverage,
     reviewCountAtLastUpdate: reviews.length,
   });

@@ -4,6 +4,7 @@ import { findById as findProductById } from '../models/product-model.js';
 import { AppError } from '../middleware/error-middleware.js';
 import { enqueue } from '../ai-engine/ai-queue.js';
 import { analyzeSentiment } from '../ai-engine/sentiment-analyzer.js';
+import { detectSpam } from '../ai-engine/spam-detector.js';
 import {
   recalculateSentimentDistribution,
   recalculateScore,
@@ -71,6 +72,13 @@ export async function createReviewService({ productId, userId, text, rating }) {
     text: text.trim(),
     rating,
   });
+
+  // Verifica spam antes de enfileirar (assíncrono, não bloqueia)
+  const spamCheck = await detectSpam(text.trim(), rating);
+  if (spamCheck.suspicious) {
+    console.warn(`[SpamDetector] Avaliação suspeita (${review.id}): ${spamCheck.reason}`);
+    // Marca como suspeita mas não bloqueia — moderação futura pode usar esse flag
+  }
 
   // Enfileira pipeline completo de IA (não bloqueia a resposta)
   enqueue({
