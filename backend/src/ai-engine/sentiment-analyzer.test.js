@@ -20,7 +20,8 @@ describe("analyzeSentiment", () => {
   });
 
   it('deve retornar "neutral" quando positivas e negativas empatam', async () => {
-    expect(await analyzeSentiment("Produto bom mas com defeito")).toBe("neutral");
+    // "ótimo" (peso 2) vs "ruim" (peso 2) → empate → neutral
+    expect(await analyzeSentiment("Produto ótimo mas ruim")).toBe("neutral");
   });
 
   it('deve retornar "neutral" para texto sem palavras-chave', async () => {

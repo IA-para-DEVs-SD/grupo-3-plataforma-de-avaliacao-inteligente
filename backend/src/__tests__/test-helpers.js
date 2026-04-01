@@ -47,6 +47,8 @@ export const CREATE_TABLES_SQL = `
     summary TEXT,
     patterns TEXT,
     smart_score REAL,
+    smart_score_confidence INTEGER DEFAULT 0,
+    score_explanation TEXT,
     simple_average REAL,
     sentiment_distribution TEXT,
     review_count_at_last_update INTEGER DEFAULT 0,

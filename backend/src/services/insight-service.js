@@ -105,7 +105,7 @@ export async function regenerateSummary(productId) {
 
   // Filtra avaliações com sentimento classificado para o resumo
   const classified = reviews.filter((r) => r.sentiment != null);
-  const summary = generateSummary(classified);
+  const summary = await generateSummary(classified);
 
   const insight = await upsertInsight(productId, {
     summary: JSON.stringify(summary),

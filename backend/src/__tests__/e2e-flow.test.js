@@ -1,6 +1,7 @@
 // Teste de integração e2e — fluxo completo: cadastro → login → criar produto → submeter avaliação → listar avaliações → consultar insights
 // Valida o fluxo principal do usuário de ponta a ponta usando supertest com banco em memória
 import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
+import { createFreshTestDb } from './test-helpers.js';
 
 // --- Configuração do ambiente de teste ---
 process.env.JWT_SECRET = 'e2e-test-secret-key';

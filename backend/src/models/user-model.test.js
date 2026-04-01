@@ -73,13 +73,14 @@ describe('user-model — createUser', () => {
       passwordHash: 'hash1',
     });
 
+    // SQLite lança SqliteError para UNIQUE constraint violation
     await expect(
       createUser({
         name: 'User 2',
         email: 'duplicado@test.com',
         passwordHash: 'hash2',
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow(/UNIQUE constraint failed|unique/i);
   });
 
   test('deve persistir o hash da senha no banco', async () => {
