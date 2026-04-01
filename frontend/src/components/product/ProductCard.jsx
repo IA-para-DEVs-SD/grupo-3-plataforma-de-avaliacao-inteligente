@@ -35,40 +35,15 @@ export default function ProductCard({ product }) {
   );
 }
 
-/* Estilos inline para o POC */
 const styles = {
-  link: {
-    textDecoration: 'none',
-    color: 'inherit',
-  },
+  link: { textDecoration: 'none', color: 'inherit' },
   card: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    padding: '0.75rem',
-    border: '1px solid #e0e0e0',
-    borderRadius: '8px',
-    transition: 'box-shadow 0.2s',
-    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem',
+    border: '1px solid var(--color-border)', borderRadius: '8px',
+    backgroundColor: 'var(--color-bg-card)', transition: 'box-shadow 0.2s', cursor: 'pointer',
   },
-  image: {
-    width: '80px',
-    height: '80px',
-    objectFit: 'cover',
-    borderRadius: '4px',
-    flexShrink: 0,
-  },
-  info: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-  },
-  name: {
-    margin: 0,
-    fontSize: '1.1rem',
-  },
-  category: {
-    fontSize: '0.85rem',
-    color: '#666',
-  },
+  image: { width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 },
+  info: { display: 'flex', flexDirection: 'column', gap: '0.25rem' },
+  name: { margin: 0, fontSize: '1.1rem', color: 'var(--color-text)' },
+  category: { fontSize: '0.85rem', color: 'var(--color-text-muted)' },
 };

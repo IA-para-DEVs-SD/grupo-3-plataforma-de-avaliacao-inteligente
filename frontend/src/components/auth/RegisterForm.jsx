@@ -4,70 +4,46 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { validateName, validateEmail, validatePassword } from '../../utils/validators.js';
 
 /**
- * Formulário de cadastro de novo usuário.
- * Valida campos inline (on blur e on submit) e redireciona para a página inicial após sucesso.
+ * Formulário de cadastro com validação inline, mostrar/ocultar senha e suporte a tema.
  */
 export default function RegisterForm() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
-  // Estado dos campos do formulário
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Estado dos erros de validação inline
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({ name: null, email: null, password: null });
-
-  // Estado de erro retornado pela API (ex: e-mail já cadastrado)
   const [apiError, setApiError] = useState(null);
-
-  // Estado de carregamento durante o envio
   const [loading, setLoading] = useState(false);
 
-  /**
-   * Valida um campo individual e atualiza o estado de erros.
-   * Chamado no evento onBlur de cada input.
-   */
   function handleBlur(field) {
     const validators = {
       name: () => validateName(name),
       email: () => validateEmail(email),
       password: () => validatePassword(password),
     };
-
     setErrors((prev) => ({ ...prev, [field]: validators[field]() }));
   }
 
-  /**
-   * Valida todos os campos e retorna true se o formulário é válido.
-   */
   function validateAll() {
     const nameError = validateName(name);
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-
     setErrors({ name: nameError, email: emailError, password: passwordError });
-
     return !nameError && !emailError && !passwordError;
   }
 
-  /**
-   * Envia os dados de cadastro para a API.
-   * Exibe erros de validação ou da API conforme necessário.
-   */
   async function handleSubmit(event) {
     event.preventDefault();
     setApiError(null);
-
     if (!validateAll()) return;
-
     setLoading(true);
     try {
       await register(name.trim(), email.trim(), password);
       navigate('/');
     } catch (error) {
-      // Extrai mensagem de erro da resposta da API
       const message =
         error?.response?.data?.error?.message ||
         error?.response?.data?.message ||
@@ -79,115 +55,100 @@ export default function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate aria-label="Formulário de cadastro">
-      <h2>Criar Conta</h2>
+    <form onSubmit={handleSubmit} noValidate aria-label="Formulário de cadastro" style={styles.form}>
+      <h2 style={styles.title}>Criar Conta</h2>
 
-      {/* Mensagem de erro da API */}
-      {apiError && (
-        <div role="alert" style={styles.apiError}>
-          {apiError}
-        </div>
-      )}
+      {apiError && <div role="alert" style={styles.apiError}>{apiError}</div>}
 
-      {/* Campo Nome */}
       <div style={styles.field}>
-        <label htmlFor="register-name">Nome</label>
+        <label htmlFor="register-name" style={styles.label}>Nome</label>
         <input
-          id="register-name"
-          type="text"
-          value={name}
+          id="register-name" type="text" value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => handleBlur('name')}
           aria-invalid={!!errors.name}
           aria-describedby={errors.name ? 'register-name-error' : undefined}
-          disabled={loading}
+          disabled={loading} style={styles.input}
         />
-        {errors.name && (
-          <span id="register-name-error" role="alert" style={styles.error}>
-            {errors.name}
-          </span>
-        )}
+        {errors.name && <span id="register-name-error" role="alert" style={styles.error}>{errors.name}</span>}
       </div>
 
-      {/* Campo E-mail */}
       <div style={styles.field}>
-        <label htmlFor="register-email">E-mail</label>
+        <label htmlFor="register-email" style={styles.label}>E-mail</label>
         <input
-          id="register-email"
-          type="email"
-          value={email}
+          id="register-email" type="email" value={email}
           onChange={(e) => setEmail(e.target.value)}
           onBlur={() => handleBlur('email')}
           aria-invalid={!!errors.email}
           aria-describedby={errors.email ? 'register-email-error' : undefined}
-          disabled={loading}
+          disabled={loading} style={styles.input}
         />
-        {errors.email && (
-          <span id="register-email-error" role="alert" style={styles.error}>
-            {errors.email}
-          </span>
-        )}
+        {errors.email && <span id="register-email-error" role="alert" style={styles.error}>{errors.email}</span>}
       </div>
 
-      {/* Campo Senha */}
       <div style={styles.field}>
-        <label htmlFor="register-password">Senha</label>
-        <input
-          id="register-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onBlur={() => handleBlur('password')}
-          aria-invalid={!!errors.password}
-          aria-describedby={errors.password ? 'register-password-error' : undefined}
-          disabled={loading}
-        />
-        {errors.password && (
-          <span id="register-password-error" role="alert" style={styles.error}>
-            {errors.password}
-          </span>
-        )}
+        <label htmlFor="register-password" style={styles.label}>Senha</label>
+        <div style={styles.passwordWrapper}>
+          <input
+            id="register-password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => handleBlur('password')}
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'register-password-error' : undefined}
+            disabled={loading}
+            style={{ ...styles.input, paddingRight: '2.8rem' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            style={styles.eyeButton}
+            aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+          >
+            {showPassword ? '🙈' : '👁️'}
+          </button>
+        </div>
+        {errors.password && <span id="register-password-error" role="alert" style={styles.error}>{errors.password}</span>}
       </div>
 
-      {/* Botão de envio */}
       <button type="submit" disabled={loading} style={styles.button}>
         {loading ? 'Cadastrando...' : 'Cadastrar'}
       </button>
 
-      {/* Link para login */}
       <p style={styles.link}>
-        Já tem conta? <Link to="/login">Faça login</Link>
+        Já tem conta? <Link to="/login" style={styles.linkAnchor}>Faça login</Link>
       </p>
     </form>
   );
 }
 
-// Estilos inline simples para o POC
 const styles = {
-  field: {
-    marginBottom: '1rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
+  form: { display: 'flex', flexDirection: 'column', gap: '0.25rem' },
+  title: { margin: '0 0 1rem 0', color: 'var(--color-text)' },
+  field: { marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' },
+  label: { fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: 500 },
+  input: {
+    padding: '0.6rem 0.75rem', fontSize: '1rem', width: '100%',
+    border: '1px solid var(--color-border-input)', borderRadius: '6px',
+    backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)',
+    boxSizing: 'border-box',
   },
-  error: {
-    color: '#d32f2f',
-    fontSize: '0.85rem',
+  passwordWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
+  eyeButton: {
+    position: 'absolute', right: '0.5rem', background: 'none', border: 'none',
+    cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', lineHeight: 1,
   },
+  error: { color: 'var(--color-error-text)', fontSize: '0.85rem' },
   apiError: {
-    color: '#d32f2f',
-    backgroundColor: '#fdecea',
-    padding: '0.75rem',
-    borderRadius: '4px',
-    marginBottom: '1rem',
+    color: 'var(--color-error-text)', backgroundColor: 'var(--color-error-bg)',
+    padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem',
   },
   button: {
-    marginTop: '0.5rem',
-    padding: '0.6rem 1.2rem',
-    cursor: 'pointer',
+    marginTop: '0.5rem', padding: '0.65rem 1.2rem', cursor: 'pointer',
+    backgroundColor: 'var(--color-bg-header)', color: '#fff',
+    border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: 500,
   },
-  link: {
-    marginTop: '1rem',
-    fontSize: '0.9rem',
-  },
+  link: { marginTop: '1rem', fontSize: '0.9rem', color: 'var(--color-text)' },
+  linkAnchor: { color: 'var(--color-link)' },
 };

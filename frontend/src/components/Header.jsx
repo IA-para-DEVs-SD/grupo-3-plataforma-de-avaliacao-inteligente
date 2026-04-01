@@ -1,27 +1,24 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { useTheme } from '../contexts/ThemeContext.jsx';
 
 /**
  * Componente Header da aplicação.
- * Exibe logo/título, campo de busca global e botões de autenticação.
- * Não recebe props — consome estado de autenticação via useAuth hook.
+ * Exibe logo, busca global, botões de autenticação e toggle de tema claro/escuro.
  */
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
-  /** Navega para a página inicial com o termo de busca */
   const handleSearch = (e) => {
     e.preventDefault();
     const trimmed = searchQuery.trim();
-    if (trimmed) {
-      navigate(`/?q=${encodeURIComponent(trimmed)}`);
-    }
+    if (trimmed) navigate(`/?q=${encodeURIComponent(trimmed)}`);
   };
 
-  /** Realiza logout e redireciona para a página inicial */
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -30,10 +27,8 @@ export default function Header() {
   return (
     <header style={styles.header}>
       <div style={styles.inner}>
-        {/* Logo / título */}
         <Link to="/" style={styles.logo}>InsightReview</Link>
 
-        {/* Campo de busca global */}
         <form onSubmit={handleSearch} style={styles.searchForm} role="search">
           <input
             type="search"
@@ -46,8 +41,20 @@ export default function Header() {
           <button type="submit" style={styles.searchButton}>Buscar</button>
         </form>
 
-        {/* Botões de autenticação */}
-        <nav style={styles.authNav} aria-label="Autenticação">
+        <nav style={styles.authNav} aria-label="Navegação">
+          {/* Toggle de tema */}
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            title={isDark ? 'Modo claro' : 'Modo escuro'}
+          >
+            <span>{isDark ? '☀️' : '🌙'}</span>
+            <span className="theme-toggle-track">
+              <span className={`theme-toggle-knob${isDark ? ' active' : ''}`} />
+            </span>
+          </button>
+
           {isAuthenticated ? (
             <div style={styles.userArea}>
               <span style={styles.userName}>{user?.name}</span>
@@ -65,11 +72,10 @@ export default function Header() {
   );
 }
 
-/* Estilos inline para o POC */
 const styles = {
   header: {
-    backgroundColor: '#1565c0',
-    color: '#fff',
+    backgroundColor: 'var(--color-bg-header)',
+    color: 'var(--color-text-header)',
     padding: '0.75rem 1rem',
   },
   inner: {
@@ -83,7 +89,7 @@ const styles = {
   logo: {
     fontSize: '1.25rem',
     fontWeight: 700,
-    color: '#fff',
+    color: 'var(--color-text-header)',
     textDecoration: 'none',
     whiteSpace: 'nowrap',
   },
@@ -99,12 +105,14 @@ const styles = {
     borderRadius: '4px',
     border: 'none',
     fontSize: '0.9rem',
+    backgroundColor: 'var(--color-bg-input)',
+    color: 'var(--color-text)',
   },
   searchButton: {
     padding: '0.45rem 0.8rem',
     borderRadius: '4px',
     border: 'none',
-    backgroundColor: '#0d47a1',
+    backgroundColor: 'var(--color-bg-header-btn)',
     color: '#fff',
     cursor: 'pointer',
     fontSize: '0.85rem',
@@ -113,6 +121,7 @@ const styles = {
   authNav: {
     display: 'flex',
     alignItems: 'center',
+    gap: '0.75rem',
   },
   userArea: {
     display: 'flex',
@@ -122,6 +131,7 @@ const styles = {
   userName: {
     fontSize: '0.9rem',
     fontWeight: 500,
+    color: 'var(--color-text-header)',
   },
   authButton: {
     padding: '0.4rem 0.8rem',
@@ -133,7 +143,7 @@ const styles = {
     fontSize: '0.85rem',
   },
   authLink: {
-    color: '#fff',
+    color: 'var(--color-text-header)',
     textDecoration: 'none',
     fontSize: '0.9rem',
   },
@@ -143,6 +153,6 @@ const styles = {
     fontSize: '0.9rem',
     padding: '0.4rem 0.8rem',
     borderRadius: '4px',
-    backgroundColor: '#0d47a1',
+    backgroundColor: 'var(--color-bg-header-btn)',
   },
 };

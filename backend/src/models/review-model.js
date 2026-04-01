@@ -38,7 +38,7 @@ export async function createReview({ productId, userId, text, rating }) {
  */
 export async function findByProductId(productId, options = {}) {
   const db = getDb();
-  const { sentiment, sort, page = 1, pattern } = options;
+  const { sentiment, sort, page = 1, pattern, rating } = options;
 
   // Monta cláusulas WHERE dinâmicas
   const conditions = ['product_id = ?'];
@@ -47,6 +47,14 @@ export async function findByProductId(productId, options = {}) {
   if (sentiment) {
     conditions.push('sentiment = ?');
     params.push(sentiment);
+  }
+
+  if (rating) {
+    const ratingNum = parseInt(rating, 10);
+    if (ratingNum >= 1 && ratingNum <= 5) {
+      conditions.push('rating = ?');
+      params.push(ratingNum);
+    }
   }
 
   if (pattern) {

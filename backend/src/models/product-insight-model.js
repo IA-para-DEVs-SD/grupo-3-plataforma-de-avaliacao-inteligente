@@ -44,6 +44,10 @@ export async function upsertInsight(productId, data) {
       updates.push('smart_score = ?');
       params.push(data.smartScore);
     }
+    if (data.smartScoreConfidence !== undefined) {
+      updates.push('smart_score_confidence = ?');
+      params.push(data.smartScoreConfidence);
+    }
     if (data.simpleAverage !== undefined) {
       updates.push('simple_average = ?');
       params.push(data.simpleAverage);
@@ -69,14 +73,15 @@ export async function upsertInsight(productId, data) {
     // Insere novo registro
     const id = uuidv4();
     db.prepare(
-      `INSERT INTO product_insights (id, product_id, summary, patterns, smart_score, simple_average, sentiment_distribution, review_count_at_last_update)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO product_insights (id, product_id, summary, patterns, smart_score, smart_score_confidence, simple_average, sentiment_distribution, review_count_at_last_update)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       productId,
       data.summary || null,
       patterns || null,
       data.smartScore ?? null,
+      data.smartScoreConfidence ?? 0,
       data.simpleAverage ?? null,
       sentimentDistribution || null,
       data.reviewCountAtLastUpdate ?? 0
@@ -97,6 +102,7 @@ export async function findByProductId(productId) {
 
   const row = db.prepare(
     `SELECT id, product_id AS productId, summary, patterns, smart_score AS smartScore,
+            smart_score_confidence AS smartScoreConfidence,
             simple_average AS simpleAverage, sentiment_distribution AS sentimentDistribution,
             review_count_at_last_update AS reviewCountAtLastUpdate, updated_at AS updatedAt
      FROM product_insights WHERE product_id = ?`

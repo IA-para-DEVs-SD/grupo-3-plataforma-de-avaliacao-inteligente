@@ -63,11 +63,15 @@ async function processNext() {
         }
       }, delay);
     } else {
-      // Falha definitiva após 3 tentativas — registra no log
+      // Falha definitiva após 3 tentativas — registra no log com contexto
       console.error(
-        `[AI Queue] Falha definitiva após ${MAX_RETRIES} tentativas:`,
+        `[AI Queue] Falha definitiva após ${MAX_RETRIES} tentativas para productId=${task.data?.productId || 'desconhecido'}:`,
         error.message || error
       );
+      // Notifica via evento para facilitar monitoramento futuro
+      if (typeof task.onFailure === 'function') {
+        try { task.onFailure(error, task.data); } catch (_) { /* ignora */ }
+      }
     }
   }
 

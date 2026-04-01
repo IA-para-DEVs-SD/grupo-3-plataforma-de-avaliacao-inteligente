@@ -12,8 +12,8 @@ import { getReviewsByProduct, createReviewService } from '../services/review-ser
 export async function getReviews(req, res, next) {
   try {
     const productId = req.params.id;
-    const { sentiment, sort, page, pattern } = req.query;
-    const result = await getReviewsByProduct(productId, { sentiment, sort, page, pattern });
+    const { sentiment, sort, page, pattern, rating } = req.query;
+    const result = await getReviewsByProduct(productId, { sentiment, sort, page, pattern, rating });
     res.status(200).json(result);
   } catch (error) {
     next(error);

@@ -4,6 +4,7 @@ import { upsertInsight, findByProductId } from '../models/product-insight-model.
 import { generateSummary } from '../ai-engine/summary-generator.js';
 import { detectPatterns } from '../ai-engine/pattern-detector.js';
 import { calculateSmartScore } from '../ai-engine/score-calculator.js';
+import { getCached, setCached, invalidate } from './insight-cache.js';
 
 /** Threshold mínimo de avaliações para gerar resumo automático */
 const SUMMARY_THRESHOLD = 5;
@@ -69,16 +70,23 @@ export async function recalculateSentimentDistribution(productId) {
     reviewCountAtLastUpdate: reviews.length,
   });
 
+  invalidate(productId);
   return insight;
 }
 
 /**
  * Retorna o insight de um produto (ou null se não existir).
+ * Usa cache em memória para evitar leituras desnecessárias ao banco.
  * @param {string} productId — ID do produto
  * @returns {Promise<object | null>}
  */
 export async function getInsights(productId) {
-  return findByProductId(productId);
+  const cached = getCached(productId);
+  if (cached) return cached;
+
+  const insight = await findByProductId(productId);
+  if (insight) setCached(productId, insight);
+  return insight;
 }
 
 /**
@@ -103,6 +111,7 @@ export async function regenerateSummary(productId) {
     reviewCountAtLastUpdate: reviews.length,
   });
 
+  invalidate(productId);
   return insight;
 }
 
@@ -128,6 +137,7 @@ export async function reanalyzePatterns(productId) {
     reviewCountAtLastUpdate: reviews.length,
   });
 
+  invalidate(productId);
   return insight;
 }
 
@@ -156,10 +166,12 @@ export async function recalculateScore(productId) {
   const smartScore = calculateSmartScore(reviews, sentimentDistribution, patterns);
 
   const insight = await upsertInsight(productId, {
-    smartScore,
+    smartScore: smartScore.score,
+    smartScoreConfidence: smartScore.confidence,
     simpleAverage,
     reviewCountAtLastUpdate: reviews.length,
   });
 
+  invalidate(productId);
   return insight;
 }

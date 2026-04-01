@@ -76,7 +76,7 @@ export async function createReviewService({ productId, userId, text, rating }) {
   enqueue({
     handler: async (data) => {
       // 1. Analisa sentimento e atualiza a avaliação
-      const sentiment = analyzeSentiment(data.text);
+      const sentiment = await analyzeSentiment(data.text);
       await updateSentiment(data.reviewId, sentiment);
 
       // 2. Recalcula distribuição de sentimento
@@ -107,7 +107,6 @@ export async function getReviewsByProduct(productId, options = {}) {
   const result = await findByProductId(productId, options);
   return result;
 }
-
 /**
  * Busca uma avaliação pelo ID.
  * Lança NOT_FOUND se a avaliação não existir.

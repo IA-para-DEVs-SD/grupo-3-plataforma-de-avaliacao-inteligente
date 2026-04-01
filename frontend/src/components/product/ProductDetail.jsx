@@ -21,12 +21,14 @@ import ReviewForm from '../review/ReviewForm.jsx';
 export default function ProductDetail() {
   const { id } = useParams();
   const { loading: productLoading, error: productError, getProduct } = useProducts();
-  const { insights, loading: insightsLoading, error: insightsError, fetchInsights } = useInsights();
+  const { insights, loading: insightsLoading, error: insightsError, fetchInsights, startPolling, stopPolling } = useInsights();
   const {
     reviews, page, totalPages, loading: reviewsLoading, error: reviewsError,
     filters, fetchReviews, submitReview, setFilter, setPage,
   } = useReviews();
   const [product, setProduct] = useState(null);
+  // Controla o banner de "IA processando" após submissão de avaliação
+  const [aiProcessing, setAiProcessing] = useState(false);
 
   // Busca produto, insights e avaliações ao montar
   useEffect(() => {
@@ -45,7 +47,13 @@ export default function ProductDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  /** Handler de clique em tag de padrão — filtra avaliações pelo padrão */
+  /** Limpa todos os filtros ativos */
+  const handleClearFilters = () => {
+    setFilter('sentiment', '');
+    setFilter('rating', '');
+    setFilter('pattern', '');
+    setFilter('sort', '');
+  };
   const handlePatternClick = (pattern) => {
     setFilter('pattern', pattern);
   };
@@ -60,11 +68,22 @@ export default function ProductDetail() {
     setFilter('sort', value);
   };
 
-  /** Handler de submissão de avaliação */
+  /** Handler de mudança de filtro de nota */
+  const handleRatingChange = (value) => {
+    setFilter('rating', value);
+  };
+
+  /** Handler de submissão de avaliação — inicia polling para atualizar insights automaticamente */
   const handleReviewSubmit = async ({ text, rating }) => {
     await submitReview(id, { text, rating });
-    // Recarrega insights após nova avaliação
-    fetchInsights(id);
+    setAiProcessing(true);
+    // Inicia polling a cada 5s para detectar quando os insights forem atualizados
+    startPolling(id);
+    // Para o polling e o banner após 30 segundos no máximo
+    setTimeout(() => {
+      stopPolling();
+      setAiProcessing(false);
+    }, 30000);
   };
 
   /* Estado de carregamento do produto */
@@ -125,6 +144,7 @@ export default function ProductDetail() {
           <SmartScore
             smartScore={insights?.smartScore ?? null}
             simpleAverage={insights?.simpleAverage ?? null}
+            smartScoreConfidence={insights?.smartScoreConfidence ?? null}
           />
 
           {/* InsightCard — resumo automático */}
@@ -145,12 +165,21 @@ export default function ProductDetail() {
       <section style={styles.reviewsSection}>
         <h2 style={styles.sectionTitle}>Avaliações</h2>
 
+        {/* Banner de processamento assíncrono da IA */}
+        {aiProcessing && (
+          <p role="status" style={styles.aiProcessingBanner}>
+            ⏳ Sua avaliação foi enviada. A IA está analisando o sentimento e atualizando os insights...
+          </p>
+        )}
+
         {/* Filtros */}
         <ReviewFilters
           sentiment={filters.sentiment}
           sort={filters.sort}
+          rating={filters.rating}
           onFilterChange={handleFilterChange}
           onSortChange={handleSortChange}
+          onRatingChange={handleRatingChange}
         />
 
         {/* Erro ao carregar avaliações */}
@@ -167,6 +196,8 @@ export default function ProductDetail() {
           totalPages={totalPages}
           loading={reviewsLoading}
           onPageChange={setPage}
+          filters={filters}
+          onClearFilters={handleClearFilters}
         />
 
         {/* Formulário de avaliação */}
@@ -181,68 +212,27 @@ export default function ProductDetail() {
 /* Estilos inline para o POC */
 const styles = {
   container: {
-    maxWidth: '720px',
-    margin: '0 auto',
-    padding: '1.5rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.5rem',
+    maxWidth: '720px', margin: '0 auto', padding: '1.5rem',
+    display: 'flex', flexDirection: 'column', gap: '1.5rem',
   },
-  productHeader: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-  },
-  image: {
-    width: '100%',
-    maxHeight: '360px',
-    objectFit: 'cover',
-    borderRadius: '8px',
-  },
-  info: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  name: {
-    margin: 0,
-    fontSize: '1.75rem',
-  },
-  category: {
-    fontSize: '0.9rem',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  description: {
-    lineHeight: 1.6,
-    color: '#333',
-  },
-  loadingText: {
-    textAlign: 'center',
-    padding: '2rem',
-    color: '#555',
-    fontStyle: 'italic',
-  },
+  productHeader: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+  image: { width: '100%', maxHeight: '360px', objectFit: 'cover', borderRadius: '8px' },
+  info: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  name: { margin: 0, fontSize: '1.75rem', color: 'var(--color-text)' },
+  category: { fontSize: '0.9rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  description: { lineHeight: 1.6, color: 'var(--color-text)' },
+  loadingText: { textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)', fontStyle: 'italic' },
   errorBox: {
-    textAlign: 'center',
-    padding: '1rem',
-    color: '#c62828',
-    backgroundColor: '#fdecea',
-    borderRadius: '6px',
-    fontSize: '0.95rem',
+    textAlign: 'center', padding: '1rem', color: 'var(--color-error-text)',
+    backgroundColor: 'var(--color-error-bg)', borderRadius: '6px', fontSize: '0.95rem',
   },
-  reviewsSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-  },
-  sectionTitle: {
-    margin: 0,
-    fontSize: '1.3rem',
-    color: '#333',
-  },
-  formWrapper: {
-    marginTop: '1rem',
+  reviewsSection: { display: 'flex', flexDirection: 'column', gap: '1rem' },
+  sectionTitle: { margin: 0, fontSize: '1.3rem', color: 'var(--color-text)' },
+  formWrapper: { marginTop: '1rem' },
+  aiProcessingBanner: {
+    backgroundColor: 'var(--color-bg-ai-banner)',
+    border: '1px solid var(--color-border-ai-banner)',
+    borderRadius: '6px', padding: '0.75rem 1rem',
+    color: 'var(--color-text)', fontSize: '0.9rem', margin: '0.5rem 0',
   },
 };

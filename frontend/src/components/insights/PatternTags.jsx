@@ -1,70 +1,52 @@
+import { useState } from 'react';
+
 /**
  * Tags de padrões recorrentes identificados pela IA.
- * Exibe tags separadas em "Pontos Fortes" (verde) e "Pontos Fracos" (vermelho).
- * Cada tag é clicável — ao clicar, filtra avaliações pelo padrão selecionado.
- * @param {{ patterns: { strengths: string[], weaknesses: string[] } | null, onPatternClick: Function }} props
- * @param {{ strengths: string[], weaknesses: string[] } | null} props.patterns — padrões detectados pela IA, null se abaixo do threshold de 10 avaliações
- * @param {(pattern: string) => void} props.onPatternClick — callback chamado ao clicar em uma tag para filtrar avaliações
+ * Cada tag é clicável para filtrar avaliações pelo padrão.
+ * Inclui hover state visual para indicar interatividade.
  */
 export default function PatternTags({ patterns, onPatternClick }) {
+  const [activePattern, setActivePattern] = useState(null);
+
   if (!patterns) return null;
-
   const { strengths = [], weaknesses = [] } = patterns;
-
-  // Sem padrões detectados — não renderiza nada
   if (strengths.length === 0 && weaknesses.length === 0) return null;
 
-  /**
-   * Handler de clique em uma tag de padrão.
-   * Chama o callback do componente pai para filtrar avaliações.
-   */
-  const handleTagClick = (pattern) => {
-    if (onPatternClick) {
-      onPatternClick(pattern);
-    }
+  const handleClick = (pattern) => {
+    // Toggle: clica de novo para desativar o filtro
+    const next = activePattern === pattern ? null : pattern;
+    setActivePattern(next);
+    onPatternClick?.(next || '');
   };
 
   return (
     <section style={styles.container} aria-label="Padrões recorrentes">
       <h3 style={styles.title}>Padrões Recorrentes</h3>
+      <p style={styles.hint}>Clique em uma tag para filtrar as avaliações</p>
 
-      {/* Pontos fortes */}
       {strengths.length > 0 && (
         <div style={styles.group}>
-          <h4 style={styles.strengthHeading}>Pontos Fortes</h4>
+          <h4 style={{ ...styles.heading, color: 'var(--color-text-positive)' }}>Pontos Fortes</h4>
           <div style={styles.tagList} role="list" aria-label="Pontos fortes">
-            {strengths.map((pattern) => (
-              <button
-                key={pattern}
-                style={styles.strengthTag}
-                onClick={() => handleTagClick(pattern)}
-                role="listitem"
-                aria-label={`Filtrar por: ${pattern}`}
-                type="button"
-              >
-                {pattern}
-              </button>
+            {strengths.map((p) => (
+              <TagButton
+                key={p} label={p} active={activePattern === p}
+                type="strength" onClick={() => handleClick(p)}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* Pontos fracos */}
       {weaknesses.length > 0 && (
         <div style={styles.group}>
-          <h4 style={styles.weaknessHeading}>Pontos Fracos</h4>
+          <h4 style={{ ...styles.heading, color: 'var(--color-text-negative)' }}>Pontos Fracos</h4>
           <div style={styles.tagList} role="list" aria-label="Pontos fracos">
-            {weaknesses.map((pattern) => (
-              <button
-                key={pattern}
-                style={styles.weaknessTag}
-                onClick={() => handleTagClick(pattern)}
-                role="listitem"
-                aria-label={`Filtrar por: ${pattern}`}
-                type="button"
-              >
-                {pattern}
-              </button>
+            {weaknesses.map((p) => (
+              <TagButton
+                key={p} label={p} active={activePattern === p}
+                type="weakness" onClick={() => handleClick(p)}
+              />
             ))}
           </div>
         </div>
@@ -73,54 +55,46 @@ export default function PatternTags({ patterns, onPatternClick }) {
   );
 }
 
-/* Estilos inline para o POC */
-const baseTag = {
-  padding: '4px 12px',
-  borderRadius: '16px',
-  fontSize: '0.85rem',
-  fontWeight: 500,
-  cursor: 'pointer',
-  border: 'none',
-  transition: 'opacity 0.2s ease',
-};
+/** Botão de tag com hover e estado ativo */
+function TagButton({ label, active, type, onClick }) {
+  const [hovered, setHovered] = useState(false);
+
+  const isStrength = type === 'strength';
+  const baseStyle = {
+    padding: '4px 12px', borderRadius: '16px', fontSize: '0.85rem',
+    fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease',
+    border: '1px solid transparent',
+    backgroundColor: isStrength ? 'var(--color-bg-badge-positive)' : 'var(--color-bg-badge-negative)',
+    color: isStrength ? 'var(--color-text-positive)' : 'var(--color-text-negative)',
+    ...(hovered && !active ? { opacity: 0.75, transform: 'translateY(-1px)' } : {}),
+    ...(active ? {
+      border: `1px solid ${isStrength ? 'var(--color-text-positive)' : 'var(--color-text-negative)'}`,
+      fontWeight: 700,
+      transform: 'translateY(-1px)',
+    } : {}),
+  };
+
+  return (
+    <button
+      type="button"
+      style={baseStyle}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      role="listitem"
+      aria-label={`${active ? 'Remover filtro' : 'Filtrar'} por: ${label}`}
+      aria-pressed={active}
+    >
+      {active && '✕ '}{label}
+    </button>
+  );
+}
 
 const styles = {
-  container: {
-    padding: '1rem',
-    border: '1px solid #e0e0e0',
-    borderRadius: '8px',
-  },
-  title: {
-    margin: '0 0 0.75rem 0',
-    fontSize: '1.1rem',
-    color: '#333',
-  },
-  group: {
-    marginBottom: '0.75rem',
-  },
-  strengthHeading: {
-    margin: '0 0 0.4rem 0',
-    fontSize: '0.9rem',
-    color: '#2e7d32',
-  },
-  weaknessHeading: {
-    margin: '0 0 0.4rem 0',
-    fontSize: '0.9rem',
-    color: '#c62828',
-  },
-  tagList: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '0.4rem',
-  },
-  strengthTag: {
-    ...baseTag,
-    backgroundColor: '#e8f5e9',
-    color: '#2e7d32',
-  },
-  weaknessTag: {
-    ...baseTag,
-    backgroundColor: '#fdecea',
-    color: '#c62828',
-  },
+  container: { padding: '1rem', border: '1px solid var(--color-border)', borderRadius: '8px', backgroundColor: 'var(--color-bg-card)' },
+  title: { margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--color-text)' },
+  hint: { margin: '0 0 0.75rem 0', fontSize: '0.8rem', color: 'var(--color-text-faint)', fontStyle: 'italic' },
+  group: { marginBottom: '0.75rem' },
+  heading: { margin: '0 0 0.4rem 0', fontSize: '0.9rem' },
+  tagList: { display: 'flex', flexWrap: 'wrap', gap: '0.4rem' },
 };

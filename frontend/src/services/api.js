@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // URL base da API — usa variável de ambiente ou fallback para localhost
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 /**
  * Instância axios configurada para comunicação com o backend.

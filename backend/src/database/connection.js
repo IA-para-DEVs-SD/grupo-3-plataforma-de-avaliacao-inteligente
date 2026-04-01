@@ -53,6 +53,7 @@ const CREATE_TABLES_SQL = `
     summary TEXT,
     patterns TEXT,
     smart_score REAL,
+    smart_score_confidence INTEGER DEFAULT 0,
     simple_average REAL,
     sentiment_distribution TEXT,
     review_count_at_last_update INTEGER DEFAULT 0,
@@ -72,12 +73,27 @@ const CREATE_INDEXES_SQL = `
 `;
 
 /**
+ * Aplica migrations incrementais para bancos já existentes.
+ * Adiciona colunas novas sem recriar tabelas (ALTER TABLE IF NOT EXISTS não existe no SQLite).
+ * @param {Database.Database} db
+ */
+function applyMigrations(db) {
+  // Migration: adiciona smart_score_confidence se não existir
+  const cols = db.pragma('table_info(product_insights)');
+  const hasConfidence = cols.some((c) => c.name === 'smart_score_confidence');
+  if (!hasConfidence) {
+    db.exec('ALTER TABLE product_insights ADD COLUMN smart_score_confidence INTEGER DEFAULT 0');
+  }
+}
+
+/**
  * Aplica o schema (tabelas e índices) em uma instância de banco.
  * @param {Database.Database} db - Instância do banco de dados
  */
 function applySchema(db) {
   db.exec(CREATE_TABLES_SQL);
   db.exec(CREATE_INDEXES_SQL);
+  applyMigrations(db);
 }
 
 /**

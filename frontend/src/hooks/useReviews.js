@@ -13,7 +13,7 @@ export function useReviews() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ sentiment: '', sort: '', pattern: '' });
+  const [filters, setFilters] = useState({ sentiment: '', sort: '', pattern: '', rating: '' });
 
   // Referência interna do productId para re-fetches automáticos
   const [currentProductId, setCurrentProductId] = useState(null);

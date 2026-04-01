@@ -84,65 +84,24 @@ export default function ProductSearch() {
 
 /* Estilos inline para o POC */
 const styles = {
-  container: {
-    maxWidth: '640px',
-    margin: '0 auto',
-    padding: '1rem',
-  },
-  form: {
-    display: 'flex',
-    gap: '0.5rem',
-    marginBottom: '1rem',
-  },
+  container: { maxWidth: '640px', margin: '0 auto', padding: '1rem' },
+  form: { display: 'flex', gap: '0.5rem', marginBottom: '1rem' },
   input: {
-    flex: 1,
-    padding: '0.6rem 0.75rem',
-    fontSize: '1rem',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
+    flex: 1, padding: '0.6rem 0.75rem', fontSize: '1rem',
+    border: '1px solid var(--color-border-input)', borderRadius: '4px',
+    backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text)',
   },
-  button: {
-    padding: '0.6rem 1.2rem',
-    cursor: 'pointer',
-    fontSize: '1rem',
-  },
-  status: {
-    color: '#555',
-    fontStyle: 'italic',
-  },
+  button: { padding: '0.6rem 1.2rem', cursor: 'pointer', fontSize: '1rem' },
+  status: { color: 'var(--color-text-muted)', fontStyle: 'italic' },
   error: {
-    color: '#d32f2f',
-    backgroundColor: '#fdecea',
-    padding: '0.75rem',
-    borderRadius: '4px',
+    color: 'var(--color-error-text)', backgroundColor: 'var(--color-error-bg)',
+    padding: '0.75rem', borderRadius: '4px',
   },
-  empty: {
-    color: '#666',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: '2rem 0',
-  },
-  list: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-  },
-  listItem: {
-    margin: 0,
-  },
-  /* Classe acessível para esconder label visualmente */
+  empty: { color: 'var(--color-text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '2rem 0' },
+  list: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  listItem: { margin: 0 },
   srOnly: {
-    position: 'absolute',
-    width: '1px',
-    height: '1px',
-    padding: 0,
-    margin: '-1px',
-    overflow: 'hidden',
-    clip: 'rect(0,0,0,0)',
-    whiteSpace: 'nowrap',
-    border: 0,
+    position: 'absolute', width: '1px', height: '1px', padding: 0,
+    margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0,
   },
 };
